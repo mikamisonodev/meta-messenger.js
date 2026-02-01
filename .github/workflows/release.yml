@@ -207,6 +207,7 @@ jobs:
 
             - name: Deprecate previous version
               if: steps.current_version.outputs.version != 'none'
+              continue-on-error: true
               run: |
                   echo "Deprecating version ${{ steps.current_version.outputs.version }}"
                   npm deprecate meta-messenger.js@${{ steps.current_version.outputs.version }} "Deprecated: Please use the latest version."
