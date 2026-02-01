@@ -34,12 +34,11 @@ jobs:
                   go build -buildmode=c-shared -ldflags="-s -w" -o ../build/messagix.so .
             - name: Rename asset
               run: mv build/messagix.so messagix-linux-x64-gnu.so
-            - name: Upload release asset
-              uses: softprops/action-gh-release@v2
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
               with:
-                  files: messagix-linux-x64-gnu.so
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  tag_name: ${{ github.ref_name }}
+                  name: messagix-linux-x64-gnu
+                  path: messagix-linux-x64-gnu.so
 
     linux-musl-x64:
         runs-on: ubuntu-latest
@@ -66,12 +65,11 @@ jobs:
                   go build -buildmode=c-shared -ldflags="-s -w" -buildvcs=false -o ../build/messagix.so .
             - name: Rename asset
               run: mv build/messagix.so messagix-linux-x64-musl.so
-            - name: Upload release asset
-              uses: softprops/action-gh-release@v2
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
               with:
-                  files: messagix-linux-x64-musl.so
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  tag_name: ${{ github.ref_name }}
+                  name: messagix-linux-x64-musl
+                  path: messagix-linux-x64-musl.so
 
     linux-gnu-arm64:
         runs-on: ubuntu-24.04-arm
@@ -96,12 +94,11 @@ jobs:
                   go build -buildmode=c-shared -ldflags="-s -w" -o ../build/messagix.so .
             - name: Rename asset
               run: mv build/messagix.so messagix-linux-arm64-gnu.so
-            - name: Upload release asset
-              uses: softprops/action-gh-release@v2
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
               with:
-                  files: messagix-linux-arm64-gnu.so
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  tag_name: ${{ github.ref_name }}
+                  name: messagix-linux-arm64-gnu
+                  path: messagix-linux-arm64-gnu.so
 
     macos-x64:
         runs-on: macos-15-intel
@@ -124,12 +121,11 @@ jobs:
                   go build -buildmode=c-shared -ldflags="-s -w" -o ../build/messagix.dylib .
             - name: Rename asset
               run: mv build/messagix.dylib messagix-darwin-x64.dylib
-            - name: Upload release asset
-              uses: softprops/action-gh-release@v2
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
               with:
-                  files: messagix-darwin-x64.dylib
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  tag_name: ${{ github.ref_name }}
+                  name: messagix-darwin-x64
+                  path: messagix-darwin-x64.dylib
 
     macos-arm64:
         runs-on: macos-latest
@@ -152,12 +148,11 @@ jobs:
                   go build -buildmode=c-shared -ldflags="-s -w" -o ../build/messagix.dylib .
             - name: Rename asset
               run: mv build/messagix.dylib messagix-darwin-arm64.dylib
-            - name: Upload release asset
-              uses: softprops/action-gh-release@v2
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
               with:
-                  files: messagix-darwin-arm64.dylib
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  tag_name: ${{ github.ref_name }}
+                  name: messagix-darwin-arm64
+                  path: messagix-darwin-arm64.dylib
 
     windows-x64:
         runs-on: windows-latest
@@ -191,15 +186,14 @@ jobs:
             - name: Rename asset
               shell: bash
               run: mv build/messagix.dll messagix-win32-x64.dll
-            - name: Upload release asset
-              uses: softprops/action-gh-release@v2
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
               with:
-                  files: messagix-win32-x64.dll
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  tag_name: ${{ github.ref_name }}
+                  name: messagix-win32-x64
+                  path: messagix-win32-x64.dll
 
-    # Publish to NPM after all native builds complete
-    publish-npm:
+    # Create GitHub Release with all assets
+    create-release:
         runs-on: ubuntu-latest
         needs:
             - linux-gnu-x64
@@ -208,6 +202,29 @@ jobs:
             - macos-x64
             - macos-arm64
             - windows-x64
+        steps:
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: artifacts
+
+            - name: Flatten artifacts
+              run: |
+                  mkdir -p release
+                  find artifacts -type f \( -name "*.so" -o -name "*.dylib" -o -name "*.dll" \) -exec mv {} release/ \;
+                  ls -la release/
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: release/*
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  tag_name: ${{ github.ref_name }}
+
+    # Publish to NPM after release is created
+    publish-npm:
+        runs-on: ubuntu-latest
+        needs: create-release
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
