@@ -219,6 +219,14 @@ jobs:
               with:
                   node-version: 22
 
+            - name: Install dependencies
+              run: npm install
+              env:
+                  MESSAGIX_SKIP_POSTINSTALL: true
+
+            - name: Build TypeScript
+              run: npm run build:ts
+
             - name: Configure npm for publishing
               run: |
                   echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
