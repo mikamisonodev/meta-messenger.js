@@ -1,0 +1,885 @@
+package bridge
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"go.mau.fi/whatsmeow/proto/waArmadilloApplication"
+	"go.mau.fi/whatsmeow/proto/waConsumerApplication"
+	"go.mau.fi/whatsmeow/types/events"
+
+	"go.mau.fi/mautrix-meta/pkg/messagix"
+	"go.mau.fi/mautrix-meta/pkg/messagix/table"
+)
+
+// EventType represents the type of event
+type EventType string
+
+const (
+	EventTypeReady         EventType = "ready"
+	EventTypeReconnected   EventType = "reconnected"
+	EventTypeDisconnected  EventType = "disconnected"
+	EventTypeError         EventType = "error"
+	EventTypeMessage       EventType = "message"
+	EventTypeMessageEdit   EventType = "messageEdit"
+	EventTypeMessageUnsend EventType = "messageUnsend"
+	EventTypeReaction      EventType = "reaction"
+	EventTypeTyping        EventType = "typing"
+	EventTypePresence      EventType = "presence"
+	EventTypeReadReceipt   EventType = "readReceipt"
+	EventTypeE2EEConnected EventType = "e2eeConnected"
+	EventTypeE2EEMessage   EventType = "e2eeMessage"
+	EventTypeE2EEReaction  EventType = "e2eeReaction"
+	EventTypeE2EEReceipt   EventType = "e2eeReceipt"
+	EventDeviceDataChanged EventType = "deviceDataChanged"
+)
+
+// Event represents a generic event
+type Event struct {
+	Type      EventType   `json:"type"`
+	Data      interface{} `json:"data"`
+	Timestamp int64       `json:"timestamp"`
+}
+
+// UserInfo holds user information
+type UserInfo struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+}
+
+// InitialData holds initial sync data
+type InitialData struct {
+	Threads  []*Thread  `json:"threads"`
+	Messages []*Message `json:"messages"`
+}
+
+// Thread represents a conversation thread
+type Thread struct {
+	ID                      int64  `json:"id"`
+	Type                    int    `json:"type"`
+	Name                    string `json:"name"`
+	LastActivityTimestampMs int64  `json:"lastActivityTimestampMs"`
+	Snippet                 string `json:"snippet"`
+}
+
+// Attachment represents a media attachment
+type Attachment struct {
+	Type       string  `json:"type"` // "image", "video", "audio", "file", "sticker", "gif", "voice", "location"
+	URL        string  `json:"url,omitempty"`
+	FileName   string  `json:"fileName,omitempty"`
+	MimeType   string  `json:"mimeType,omitempty"`
+	FileSize   int64   `json:"fileSize,omitempty"`
+	Width      int     `json:"width,omitempty"`
+	Height     int     `json:"height,omitempty"`
+	Duration   int     `json:"duration,omitempty"` // in seconds for audio/video
+	StickerID  int64   `json:"stickerId,omitempty"`
+	Latitude   float64 `json:"latitude,omitempty"`
+	Longitude  float64 `json:"longitude,omitempty"`
+	PreviewURL string  `json:"previewUrl,omitempty"`
+	// For E2EE media download
+	MediaKey    []byte `json:"mediaKey,omitempty"`
+	MediaSHA256 []byte `json:"mediaSha256,omitempty"`
+	DirectPath  string `json:"directPath,omitempty"`
+}
+
+// ReplyTo represents reply info
+type ReplyTo struct {
+	MessageID string `json:"messageId"`
+	SenderID  int64  `json:"senderId,omitempty"`
+	Text      string `json:"text,omitempty"`
+}
+
+// Mention represents a mention
+type Mention struct {
+	UserID int64  `json:"userId"`
+	Offset int    `json:"offset"`
+	Length int    `json:"length"`
+	Type   string `json:"type,omitempty"` // "user", "page", "group"
+}
+
+// Message represents a message
+type Message struct {
+	ID          string        `json:"id"`
+	ThreadID    int64         `json:"threadId"`
+	SenderID    int64         `json:"senderId"`
+	Text        string        `json:"text"`
+	TimestampMs int64         `json:"timestampMs"`
+	IsE2EE      bool          `json:"isE2EE,omitempty"`
+	ChatJID     string        `json:"chatJid,omitempty"`
+	SenderJID   string        `json:"senderJid,omitempty"`
+	Attachments []*Attachment `json:"attachments,omitempty"`
+	ReplyTo     *ReplyTo      `json:"replyTo,omitempty"`
+	Mentions    []*Mention    `json:"mentions,omitempty"`
+	IsAdminMsg  bool          `json:"isAdminMsg,omitempty"`
+}
+
+// MessageEditEvent represents a message edit
+type MessageEditEvent struct {
+	MessageID   string `json:"messageId"`
+	ThreadID    int64  `json:"threadId"`
+	NewText     string `json:"newText"`
+	EditCount   int64  `json:"editCount"`
+	TimestampMs int64  `json:"timestampMs"`
+}
+
+// ReadReceiptEvent represents a read receipt
+type ReadReceiptEvent struct {
+	ThreadID                 int64 `json:"threadId"`
+	ReaderID                 int64 `json:"readerId"`
+	ReadWatermarkTimestampMs int64 `json:"readWatermarkTimestampMs"`
+	TimestampMs              int64 `json:"timestampMs,omitempty"`
+}
+
+// ReactionEvent represents a reaction event
+type ReactionEvent struct {
+	MessageID   string `json:"messageId"`
+	ThreadID    int64  `json:"threadId"`
+	ActorID     int64  `json:"actorId"`
+	Reaction    string `json:"reaction"`
+	TimestampMs int64  `json:"timestampMs"`
+}
+
+// TypingEvent represents a typing event
+type TypingEvent struct {
+	ThreadID int64 `json:"threadId"`
+	SenderID int64 `json:"senderId"`
+	IsTyping bool  `json:"isTyping"`
+}
+
+// ErrorEvent represents an error event
+type ErrorEvent struct {
+	Message string `json:"message"`
+	Code    int    `json:"code,omitempty"`
+}
+
+// E2EEMessage represents an E2EE message
+type E2EEMessage struct {
+	ID          string        `json:"id"`
+	ThreadID    int64         `json:"threadId"` // For compatibility with regular messages
+	ChatJID     string        `json:"chatJid"`
+	SenderJID   string        `json:"senderJid"`
+	SenderID    int64         `json:"senderId"`
+	Text        string        `json:"text"`
+	TimestampMs int64         `json:"timestampMs"`
+	Attachments []*Attachment `json:"attachments,omitempty"`
+	ReplyTo     *ReplyTo      `json:"replyTo,omitempty"`
+	Mentions    []*Mention    `json:"mentions,omitempty"`
+}
+
+// handleEvent handles messagix events
+func (c *Client) handleEvent(ctx context.Context, evt any) {
+	switch e := evt.(type) {
+	case *messagix.Event_Ready:
+		c.emitEvent(EventTypeReady, map[string]any{
+			"isNewSession": e.IsNewSession,
+		})
+
+	case *messagix.Event_Reconnected:
+		c.emitEvent(EventTypeReconnected, nil)
+
+	case *messagix.Event_SocketError:
+		c.emitEvent(EventTypeError, &ErrorEvent{
+			Message: e.Err.Error(),
+		})
+
+	case *messagix.Event_PermanentError:
+		c.emitEvent(EventTypeError, &ErrorEvent{
+			Message: e.Err.Error(),
+			Code:    1,
+		})
+
+	case *messagix.Event_PublishResponse:
+		if e.Table != nil {
+			c.handleTable(e.Table)
+		}
+	}
+}
+
+// handleTable processes a table from publish response
+func (c *Client) handleTable(tbl *table.LSTable) {
+	// Process wrapped messages (includes attachments info)
+	// upsert = sync/backfill messages (should NOT emit events)
+	// insert = new real-time messages (should emit events)
+	_, insert := tbl.WrapMessages()
+
+	// Track handled message IDs to avoid duplicates
+	handledMsgIds := make(map[string]bool)
+
+	// NOTE: We do NOT emit events for upserted messages (sync/backfill)
+	// These are historical messages returned during thread fetch or initial sync
+	// Only insert messages (real-time new messages) should trigger events
+
+	// Handle inserted messages (new real-time messages)
+	for _, msg := range insert {
+		if msg.MessageId != "" {
+			if handledMsgIds[msg.MessageId] {
+				continue
+			}
+			handledMsgIds[msg.MessageId] = true
+		}
+		c.emitEvent(EventTypeMessage, c.convertWrappedMessage(msg))
+	}
+
+	// Handle simple inserted messages (fallback) - skip if already handled
+	for _, msg := range tbl.LSInsertMessage {
+		if handledMsgIds[msg.MessageId] {
+			continue
+		}
+		c.emitEvent(EventTypeMessage, &Message{
+			ID:          msg.MessageId,
+			ThreadID:    msg.ThreadKey,
+			SenderID:    msg.SenderId,
+			Text:        msg.Text,
+			TimestampMs: msg.TimestampMs,
+		})
+	}
+
+	// Handle message edits
+	for _, edit := range tbl.LSEditMessage {
+		c.emitEvent(EventTypeMessageEdit, &MessageEditEvent{
+			MessageID:   edit.MessageID,
+			ThreadID:    0, // Edit doesn't include threadID, will be resolved by client
+			NewText:     edit.Text,
+			EditCount:   edit.EditCount,
+			TimestampMs: timeNowMs(),
+		})
+	}
+
+	// Handle message deletes
+	for _, del := range tbl.LSDeleteMessage {
+		c.emitEvent(EventTypeMessageUnsend, map[string]any{
+			"messageId": del.MessageId,
+			"threadId":  del.ThreadKey,
+		})
+	}
+
+	// Handle DeleteThenInsert for unsend
+	for _, del := range tbl.LSDeleteThenInsertMessage {
+		if del.IsUnsent {
+			c.emitEvent(EventTypeMessageUnsend, map[string]any{
+				"messageId": del.MessageId,
+				"threadId":  del.ThreadKey,
+			})
+		}
+	}
+
+	// Handle read receipts
+	for _, receipt := range tbl.LSUpdateReadReceipt {
+		c.emitEvent(EventTypeReadReceipt, &ReadReceiptEvent{
+			ThreadID:                 receipt.ThreadKey,
+			ReaderID:                 receipt.ContactId,
+			ReadWatermarkTimestampMs: receipt.ReadWatermarkTimestampMs,
+			TimestampMs:              receipt.ReadActionTimestampMs,
+		})
+	}
+
+	// Handle self read (mark thread read)
+	for _, read := range tbl.LSMarkThreadReadV2 {
+		c.emitEvent(EventTypeReadReceipt, &ReadReceiptEvent{
+			ThreadID:                 read.ThreadKey,
+			ReaderID:                 c.FBID, // Self
+			ReadWatermarkTimestampMs: read.LastReadWatermarkTimestampMs,
+			TimestampMs:              timeNowMs(),
+		})
+	}
+
+	// Handle reactions
+	for _, r := range tbl.LSUpsertReaction {
+		c.emitEvent(EventTypeReaction, &ReactionEvent{
+			MessageID:   r.MessageId,
+			ThreadID:    r.ThreadKey,
+			ActorID:     r.ActorId,
+			Reaction:    r.Reaction,
+			TimestampMs: r.TimestampMs,
+		})
+	}
+
+	// Handle unreactions (reaction removed) with deduplication
+	for _, r := range tbl.LSDeleteReaction {
+		// Create a unique key for this unreaction
+		unreactionKey := fmt.Sprintf("%s:%d", r.MessageId, r.ActorId)
+		now := time.Now().UnixMilli()
+
+		// Check if we've recently processed this unreaction (within 500ms)
+		c.recentUnreactionsMu.RLock()
+		lastTime, exists := c.recentUnreactions[unreactionKey]
+		c.recentUnreactionsMu.RUnlock()
+
+		if exists && (now-lastTime) < 500 {
+			// Skip duplicate unreaction
+			continue
+		}
+
+		// Record this unreaction
+		c.recentUnreactionsMu.Lock()
+		c.recentUnreactions[unreactionKey] = now
+		// Clean old entries (older than 5 seconds)
+		for k, t := range c.recentUnreactions {
+			if now-t > 5000 {
+				delete(c.recentUnreactions, k)
+			}
+		}
+		c.recentUnreactionsMu.Unlock()
+
+		c.emitEvent(EventTypeReaction, &ReactionEvent{
+			MessageID:   r.MessageId,
+			ThreadID:    r.ThreadKey,
+			ActorID:     r.ActorId,
+			Reaction:    "", // Empty means reaction removed
+			TimestampMs: 0,
+		})
+	}
+
+	// Handle typing indicators
+	for _, typing := range tbl.LSUpdateTypingIndicator {
+		c.emitEvent(EventTypeTyping, &TypingEvent{
+			ThreadID: typing.ThreadKey,
+			SenderID: typing.SenderId,
+			IsTyping: typing.IsTyping,
+		})
+	}
+}
+
+// parseMentions parses comma-separated mention strings into Mention structs
+func parseMentions(offsets, lengths, ids string) []*Mention {
+	if offsets == "" || ids == "" {
+		return nil
+	}
+
+	offsetParts := strings.Split(offsets, ",")
+	lengthParts := strings.Split(lengths, ",")
+	idParts := strings.Split(ids, ",")
+
+	// Need at least matching offsets and ids
+	count := len(offsetParts)
+	if len(idParts) < count {
+		count = len(idParts)
+	}
+
+	mentions := make([]*Mention, 0, count)
+	for i := 0; i < count; i++ {
+		offset, err := strconv.Atoi(strings.TrimSpace(offsetParts[i]))
+		if err != nil {
+			continue
+		}
+		length := 0
+		if i < len(lengthParts) {
+			length, _ = strconv.Atoi(strings.TrimSpace(lengthParts[i]))
+		}
+		userID, err := strconv.ParseInt(strings.TrimSpace(idParts[i]), 10, 64)
+		if err != nil {
+			continue
+		}
+		mentions = append(mentions, &Mention{
+			UserID: userID,
+			Offset: offset,
+			Length: length,
+		})
+	}
+	return mentions
+}
+
+// convertWrappedMessage converts a wrapped message with attachments
+func (c *Client) convertWrappedMessage(msg *table.WrappedMessage) *Message {
+	m := &Message{
+		ID:          msg.MessageId,
+		ThreadID:    msg.ThreadKey,
+		SenderID:    msg.SenderId,
+		Text:        msg.Text,
+		TimestampMs: msg.TimestampMs,
+		IsAdminMsg:  msg.IsAdminMessage,
+		Attachments: []*Attachment{},
+		Mentions:    []*Mention{},
+	}
+
+	// Handle reply
+	if msg.ReplySourceId != "" {
+		m.ReplyTo = &ReplyTo{
+			MessageID: msg.ReplySourceId,
+			SenderID:  msg.ReplyToUserId,
+			Text:      msg.ReplySnippet,
+		}
+	}
+
+	// Parse mentions from comma-separated strings
+	if mentions := parseMentions(msg.MentionOffsets, msg.MentionLengths, msg.MentionIds); mentions != nil {
+		m.Mentions = mentions
+	}
+
+	// Handle blob attachments (images, videos, files, etc.)
+	for _, blob := range msg.BlobAttachments {
+		att := c.convertBlobAttachment(blob)
+		if att != nil {
+			m.Attachments = append(m.Attachments, att)
+		}
+	}
+
+	// Handle stickers
+	for _, sticker := range msg.Stickers {
+		// Try AttachmentFbid first (this is the actual sticker ID for sending)
+		// Fall back to TargetId if AttachmentFbid is not available
+		var stickerID int64
+		if sticker.AttachmentFbid != "" {
+			stickerID, _ = strconv.ParseInt(sticker.AttachmentFbid, 10, 64)
+		}
+		if stickerID == 0 {
+			stickerID = sticker.TargetId
+		}
+		m.Attachments = append(m.Attachments, &Attachment{
+			Type:      "sticker",
+			URL:       sticker.PreviewUrl,
+			StickerID: stickerID,
+			Width:     int(sticker.PreviewWidth),
+			Height:    int(sticker.PreviewHeight),
+		})
+	}
+
+	// Handle XMA attachments (links, shares, etc.)
+	for _, xma := range msg.XMAAttachments {
+		if xma.PreviewUrl != "" {
+			m.Attachments = append(m.Attachments, &Attachment{
+				Type:       "link",
+				URL:        xma.ActionUrl,
+				PreviewURL: xma.PreviewUrl,
+				FileName:   xma.TitleText,
+			})
+		}
+	}
+
+	return m
+}
+
+// convertBlobAttachment converts a blob attachment to our format
+func (c *Client) convertBlobAttachment(blob *table.LSInsertBlobAttachment) *Attachment {
+	att := &Attachment{
+		FileName: blob.Filename,
+		MimeType: blob.AttachmentMimeType,
+		FileSize: blob.Filesize,
+	}
+
+	// Determine type based on AttachmentType (from table/enums.go)
+	// 0=None, 1=Sticker, 2=Image, 3=AnimatedImage, 4=Video, 5=Audio, 6=File, 7=XMA
+	switch blob.AttachmentType {
+	case table.AttachmentTypeImage, table.AttachmentTypeEphemeralImage: // 2, 8
+		att.Type = "image"
+		att.URL = blob.PreviewUrl
+		att.Width = int(blob.PreviewWidth)
+		att.Height = int(blob.PreviewHeight)
+	case table.AttachmentTypeAnimatedImage: // 3 (GIF)
+		att.Type = "gif"
+		att.URL = blob.PlayableUrl
+		if att.URL == "" {
+			att.URL = blob.PreviewUrl
+		}
+		att.PreviewURL = blob.PreviewUrl
+		att.Width = int(blob.PreviewWidth)
+		att.Height = int(blob.PreviewHeight)
+	case table.AttachmentTypeVideo, table.AttachmentTypeEphemeralVideo: // 4, 9
+		att.Type = "video"
+		att.URL = blob.PlayableUrl
+		att.PreviewURL = blob.PreviewUrl
+		att.Width = int(blob.PreviewWidth)
+		att.Height = int(blob.PreviewHeight)
+		att.Duration = int(blob.PlayableDurationMs / 1000)
+	case table.AttachmentTypeAudio: // 5
+		att.Type = "audio"
+		att.URL = blob.PlayableUrl
+		att.Duration = int(blob.PlayableDurationMs / 1000)
+	case table.AttachmentTypeFile: // 6
+		att.Type = "file"
+		if blob.PlayableUrl != "" {
+			att.URL = blob.PlayableUrl
+		} else {
+			att.URL = blob.PreviewUrl
+		}
+	case table.AttachmentTypeSoundBite: // 12 - voice message
+		att.Type = "voice"
+		att.URL = blob.PlayableUrl
+		att.Duration = int(blob.PlayableDurationMs / 1000)
+	default:
+		att.Type = "file"
+		if blob.PlayableUrl != "" {
+			att.URL = blob.PlayableUrl
+		} else if blob.PreviewUrl != "" {
+			att.URL = blob.PreviewUrl
+		}
+	}
+
+	return att
+}
+
+// handleE2EEEvent handles WhatsApp E2EE events
+func (c *Client) handleE2EEEvent(evt interface{}) {
+	switch e := evt.(type) {
+	case *events.Connected:
+		c.emitEvent(EventTypeE2EEConnected, nil)
+
+	case *events.Disconnected:
+		c.emitEvent(EventTypeDisconnected, map[string]any{
+			"isE2EE": true,
+		})
+
+	case *events.FBMessage:
+		var senderID int64
+		if e.Info.Sender.User != "" {
+			senderID, _ = strconv.ParseInt(e.Info.Sender.User, 10, 64)
+		}
+
+		// Check if it's a reaction message (including unreaction)
+		if isE2EEReactionMessage(e) {
+			reaction := extractE2EEReaction(e)
+			c.emitEvent(EventTypeE2EEReaction, map[string]any{
+				"messageId": extractE2EEReactionMessageID(e),
+				"chatJid":   e.Info.Chat.String(),
+				"senderJid": e.Info.Sender.String(),
+				"senderId":  senderID,
+				"reaction":  reaction, // Empty means unreaction
+			})
+			return
+		}
+
+		// Check if it's an edit message
+		if isE2EEEditMessage(e) {
+			editInfo := extractE2EEEditInfo(e)
+			if editInfo != nil {
+				c.emitEvent(EventTypeMessageEdit, &MessageEditEvent{
+					MessageID:   editInfo.MessageID,
+					ThreadID:    0,
+					NewText:     editInfo.NewText,
+					EditCount:   1,
+					TimestampMs: e.Info.Timestamp.UnixMilli(),
+				})
+			}
+			return
+		}
+
+		// Check if it's an unsend/revoke message
+		if isE2EERevokeMessage(e) {
+			revokedMsgID := extractE2EERevokedMessageID(e)
+			if revokedMsgID != "" {
+				c.emitEvent(EventTypeMessageUnsend, map[string]any{
+					"messageId": revokedMsgID,
+					"threadId":  e.Info.Chat.String(),
+					"isE2EE":    true,
+				})
+			}
+			return
+		}
+
+		// Regular message - extract full content
+		msg := c.extractE2EEMessage(e, senderID)
+		c.emitEvent(EventTypeE2EEMessage, msg)
+
+	case *events.Receipt:
+		c.emitEvent(EventTypeE2EEReceipt, map[string]any{
+			"type":       string(e.Type),
+			"chat":       e.Chat.String(),
+			"sender":     e.Sender.String(),
+			"messageIds": e.MessageIDs,
+		})
+	}
+}
+
+// emitEvent emits an event to the channel
+func (c *Client) emitEvent(eventType EventType, data interface{}) {
+	select {
+	case c.eventChan <- &Event{
+		Type:      eventType,
+		Data:      data,
+		Timestamp: timeNowMs(),
+	}:
+	default:
+		c.Logger.Warn().Str("type", string(eventType)).Msg("Event channel full, dropping event")
+	}
+}
+
+// extractE2EEText extracts text from an E2EE message
+func extractE2EEText(e *events.FBMessage) string {
+	if e.Message == nil {
+		return ""
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if c := p.GetContent(); c != nil {
+				if mt, ok := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_MessageText); ok {
+					return mt.MessageText.GetText()
+				}
+				if et, ok := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ExtendedTextMessage); ok {
+					return et.ExtendedTextMessage.GetText().GetText()
+				}
+			}
+		}
+	}
+
+	if _, ok := e.Message.(*waArmadilloApplication.Armadillo); ok {
+		// Armadillo special messages - could be parsed further
+	}
+
+	return ""
+}
+
+// isE2EEReactionMessage checks if the message is a reaction (including unreaction)
+func isE2EEReactionMessage(e *events.FBMessage) bool {
+	if e.Message == nil {
+		return false
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if c := p.GetContent(); c != nil {
+				_, isReaction := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ReactionMessage)
+				return isReaction
+			}
+		}
+	}
+
+	return false
+}
+
+// extractE2EEReaction extracts reaction emoji from an E2EE message
+func extractE2EEReaction(e *events.FBMessage) string {
+	if e.Message == nil {
+		return ""
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if c := p.GetContent(); c != nil {
+				if rm, ok := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ReactionMessage); ok {
+					return rm.ReactionMessage.GetText()
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+// extractE2EEReactionMessageID extracts the message ID that was reacted to
+func extractE2EEReactionMessageID(e *events.FBMessage) string {
+	if e.Message == nil {
+		return ""
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if c := p.GetContent(); c != nil {
+				if rm, ok := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ReactionMessage); ok {
+					if key := rm.ReactionMessage.GetKey(); key != nil {
+						return key.GetID()
+					}
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+func timeNowMs() int64 {
+	return time.Now().UnixMilli()
+}
+
+// ErrE2EENotConnected error when E2EE is not connected
+var ErrE2EENotConnected = fmt.Errorf("E2EE not connected")
+
+// E2EEEditInfo holds edit information
+type E2EEEditInfo struct {
+	MessageID string
+	NewText   string
+}
+
+// isE2EEEditMessage checks if the message is an edit
+func isE2EEEditMessage(e *events.FBMessage) bool {
+	if e.Message == nil {
+		return false
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if c := p.GetContent(); c != nil {
+				_, isEdit := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_EditMessage)
+				return isEdit
+			}
+		}
+	}
+
+	return false
+}
+
+// extractE2EEEditInfo extracts edit information
+func extractE2EEEditInfo(e *events.FBMessage) *E2EEEditInfo {
+	if e.Message == nil {
+		return nil
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if c := p.GetContent(); c != nil {
+				if em, ok := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_EditMessage); ok {
+					edit := em.EditMessage
+					return &E2EEEditInfo{
+						MessageID: edit.GetKey().GetID(),
+						NewText:   edit.GetMessage().GetText(),
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// isE2EERevokeMessage checks if the message is an unsend/revoke
+func isE2EERevokeMessage(e *events.FBMessage) bool {
+	if e.Message == nil {
+		return false
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if appData := p.GetApplicationData(); appData != nil {
+				return appData.GetRevoke() != nil
+			}
+		}
+	}
+
+	return false
+}
+
+// extractE2EERevokedMessageID extracts the message ID that was revoked
+func extractE2EERevokedMessageID(e *events.FBMessage) string {
+	if e.Message == nil {
+		return ""
+	}
+
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if appData := p.GetApplicationData(); appData != nil {
+				if revoke := appData.GetRevoke(); revoke != nil {
+					if key := revoke.GetKey(); key != nil {
+						return key.GetID()
+					}
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+// extractE2EEMessage extracts full message content including media
+func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMessage {
+	// Parse threadID from chatJID (format: "123456789@msgr" -> 123456789)
+	var threadID int64
+	if e.Info.Chat.User != "" {
+		threadID, _ = strconv.ParseInt(e.Info.Chat.User, 10, 64)
+	}
+
+	msg := &E2EEMessage{
+		ID:          e.Info.ID,
+		ThreadID:    threadID,
+		ChatJID:     e.Info.Chat.String(),
+		SenderJID:   e.Info.Sender.String(),
+		SenderID:    senderID,
+		Text:        extractE2EEText(e),
+		TimestampMs: e.Info.Timestamp.UnixMilli(),
+		Attachments: []*Attachment{},
+		Mentions:    []*Mention{},
+	}
+
+	if e.Message == nil {
+		return msg
+	}
+
+	// Extract from ConsumerApplication
+	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
+		if p := ca.GetPayload(); p != nil {
+			if content := p.GetContent(); content != nil {
+				// Check for image
+				if img, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ImageMessage); ok {
+					att := &Attachment{
+						Type: "image",
+					}
+					msg.Attachments = append(msg.Attachments, att)
+					// Caption
+					if caption := img.ImageMessage.GetCaption(); caption != nil {
+						msg.Text = caption.GetText()
+					}
+				}
+
+				// Check for video
+				if vid, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_VideoMessage); ok {
+					att := &Attachment{
+						Type: "video",
+					}
+					msg.Attachments = append(msg.Attachments, att)
+					// Caption
+					if caption := vid.VideoMessage.GetCaption(); caption != nil {
+						msg.Text = caption.GetText()
+					}
+				}
+
+				// Check for audio/voice
+				if _, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_AudioMessage); ok {
+					att := &Attachment{
+						Type: "voice",
+					}
+					msg.Attachments = append(msg.Attachments, att)
+				}
+
+				// Check for document/file
+				if doc, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_DocumentMessage); ok {
+					att := &Attachment{
+						Type:     "file",
+						FileName: doc.DocumentMessage.GetFileName(),
+					}
+					msg.Attachments = append(msg.Attachments, att)
+				}
+
+				// Check for sticker
+				if _, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_StickerMessage); ok {
+					att := &Attachment{
+						Type: "sticker",
+					}
+					msg.Attachments = append(msg.Attachments, att)
+				}
+
+				// Check for location
+				if loc, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_LocationMessage); ok {
+					att := &Attachment{
+						Type:      "location",
+						Latitude:  loc.LocationMessage.GetLocation().GetDegreesLatitude(),
+						Longitude: loc.LocationMessage.GetLocation().GetDegreesLongitude(),
+						FileName:  loc.LocationMessage.GetAddress(),
+					}
+					msg.Attachments = append(msg.Attachments, att)
+				}
+
+				// Check for extended text (with URL preview)
+				if ext, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ExtendedTextMessage); ok {
+					if extMsg := ext.ExtendedTextMessage; extMsg != nil {
+						if textMsg := extMsg.GetText(); textMsg != nil {
+							msg.Text = textMsg.GetText()
+						}
+						if extMsg.GetCanonicalURL() != "" {
+							att := &Attachment{
+								Type:     "link",
+								URL:      extMsg.GetCanonicalURL(),
+								FileName: extMsg.GetTitle(),
+							}
+							msg.Attachments = append(msg.Attachments, att)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return msg
+}

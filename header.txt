@@ -1,0 +1,4 @@
+/*
+ * meta-messenger.js, Unofficial Meta Messenger Chat API for NodeJS
+ * Copyright (c) {year} {author}
+ */

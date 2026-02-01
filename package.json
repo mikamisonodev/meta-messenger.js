@@ -1,0 +1,55 @@
+{
+  "name": "meta-messenger.js",
+  "version": "0.0.1",
+  "description": "Unofficial Meta Messenger Chat API for NodeJS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build:go": "node scripts/build-go.mjs",
+    "build:ts": "tsup",
+    "build": "npm run build:go && npm run build:ts",
+    "postinstall": "node scripts/postinstall.mjs",
+    "lint:fix": "eslint . --fix",
+    "lint": "eslint .",
+    "test": "tsc --noEmit && npm run lint"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aiko-chan-ai/meta-messenger.js.git"
+  },
+  "author": "aiko-chan-ai",
+  "bugs": {
+    "url": "https://github.com/aiko-chan-ai/meta-messenger.js/issues"
+  },
+  "files": [
+    "dist",
+    "scripts"
+  ],
+  "homepage": "https://github.com/aiko-chan-ai/meta-messenger.js",
+  "license": "MIT",
+  "dependencies": {
+    "koffi": "^2.15.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "@typescript-eslint/eslint-plugin": "^7.15.0",
+    "@typescript-eslint/parser": "^7.15.0",
+    "esbuild-plugin-version-injector": "^1.1.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-path-alias": "^2.1.0",
+    "eslint-plugin-simple-header": "^1.0.2",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.0.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
