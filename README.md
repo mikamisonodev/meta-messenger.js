@@ -3,6 +3,8 @@
 <a href="https://www.npmjs.com/package/meta-messenger.js"><img alt="npm version" src="https://img.shields.io/npm/v/meta-messenger.js.svg?style=flat-square"></a>
 <a href="https://www.npmjs.com/package/meta-messenger.js"><img src="https://img.shields.io/npm/dm/meta-messenger.js.svg?style=flat-square" alt="npm downloads"></a>
 
+[![Discord](https://img.shields.io/discord/1467543732323876975?style=for-the-badge&logo=discord&logoColor=white&label=Discord&color=%235865F2)](https://discord.gg/AbT6f9RMDe)
+
 Facebook now has an official API for chat bots [here](https://developers.facebook.com/docs/messenger-platform).
 
 This API is one of the ways to automate chat functions on user accounts.

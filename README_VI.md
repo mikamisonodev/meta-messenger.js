@@ -3,6 +3,8 @@
 <a href="https://www.npmjs.com/package/meta-messenger.js"><img alt="npm version" src="https://img.shields.io/npm/v/meta-messenger.js.svg?style=flat-square"></a>
 <a href="https://www.npmjs.com/package/meta-messenger.js"><img src="https://img.shields.io/npm/dm/meta-messenger.js.svg?style=flat-square" alt="npm downloads"></a>
 
+[![Discord](https://img.shields.io/discord/1467543732323876975?style=for-the-badge&logo=discord&logoColor=white&label=Discord&color=%235865F2)](https://discord.gg/AbT6f9RMDe)
+
 Facebook hiện có API chính thức cho chat bots [tại đây](https://developers.facebook.com/docs/messenger-platform).
 
 API này là một trong những cách để tự động hóa các chức năng chat trên tài khoản người dùng. 
