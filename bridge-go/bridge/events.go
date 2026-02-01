@@ -3,6 +3,7 @@ package bridge
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -69,18 +70,20 @@ type Thread struct {
 
 // Attachment represents a media attachment
 type Attachment struct {
-	Type       string  `json:"type"` // "image", "video", "audio", "file", "sticker", "gif", "voice", "location"
-	URL        string  `json:"url,omitempty"`
-	FileName   string  `json:"fileName,omitempty"`
-	MimeType   string  `json:"mimeType,omitempty"`
-	FileSize   int64   `json:"fileSize,omitempty"`
-	Width      int     `json:"width,omitempty"`
-	Height     int     `json:"height,omitempty"`
-	Duration   int     `json:"duration,omitempty"` // in seconds for audio/video
-	StickerID  int64   `json:"stickerId,omitempty"`
-	Latitude   float64 `json:"latitude,omitempty"`
-	Longitude  float64 `json:"longitude,omitempty"`
-	PreviewURL string  `json:"previewUrl,omitempty"`
+	Type        string  `json:"type"` // "image", "video", "audio", "file", "sticker", "gif", "voice", "location", "link"
+	URL         string  `json:"url,omitempty"`
+	FileName    string  `json:"fileName,omitempty"`
+	MimeType    string  `json:"mimeType,omitempty"`
+	FileSize    int64   `json:"fileSize,omitempty"`
+	Width       int     `json:"width,omitempty"`
+	Height      int     `json:"height,omitempty"`
+	Duration    int     `json:"duration,omitempty"` // in seconds for audio/video
+	StickerID   int64   `json:"stickerId,omitempty"`
+	Latitude    float64 `json:"latitude,omitempty"`
+	Longitude   float64 `json:"longitude,omitempty"`
+	PreviewURL  string  `json:"previewUrl,omitempty"`
+	Description string  `json:"description,omitempty"` // For link attachments
+	SourceText  string  `json:"sourceText,omitempty"`  // Domain/source for link attachments
 	// For E2EE media download
 	MediaKey       []byte `json:"mediaKey,omitempty"`
 	MediaSHA256    []byte `json:"mediaSha256,omitempty"`
@@ -442,12 +445,25 @@ func (c *Client) convertWrappedMessage(msg *table.WrappedMessage) *Message {
 
 	// Handle XMA attachments (links, shares, etc.)
 	for _, xma := range msg.XMAAttachments {
-		if xma.PreviewUrl != "" {
+		// Get the actual URL from CTA ActionUrl or fallback to xma.ActionUrl
+		var linkURL string
+		if xma.CTA != nil && xma.CTA.ActionUrl != "" {
+			linkURL = extractURLFromLPHP(xma.CTA.ActionUrl)
+		} else if xma.ActionUrl != "" {
+			linkURL = extractURLFromLPHP(xma.ActionUrl)
+		}
+
+		// Only add as link attachment if we have a URL or preview
+		if linkURL != "" || xma.PreviewUrl != "" {
 			m.Attachments = append(m.Attachments, &Attachment{
-				Type:       "link",
-				URL:        xma.ActionUrl,
-				PreviewURL: xma.PreviewUrl,
-				FileName:   xma.TitleText,
+				Type:        "link",
+				URL:         linkURL,
+				PreviewURL:  xma.PreviewUrl,
+				FileName:    xma.TitleText,
+				Description: xma.SubtitleText,
+				SourceText:  xma.SourceText,
+				Width:       int(xma.PreviewWidth),
+				Height:      int(xma.PreviewHeight),
 			})
 		}
 	}
@@ -949,11 +965,23 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 								msg.Mentions = mentions
 							}
 						}
-						if extMsg.GetCanonicalURL() != "" {
+						if extMsg.GetCanonicalURL() != "" || extMsg.GetMatchedText() != "" {
 							att := &Attachment{
-								Type:     "link",
-								URL:      extMsg.GetCanonicalURL(),
-								FileName: extMsg.GetTitle(),
+								Type:        "link",
+								URL:         extMsg.GetCanonicalURL(),
+								FileName:    extMsg.GetTitle(),
+								Description: extMsg.GetDescription(),
+							}
+							// If no canonical URL, use matched text as the URL
+							if att.URL == "" && extMsg.GetMatchedText() != "" {
+								att.URL = extMsg.GetMatchedText()
+							}
+							// Try to decode thumbnail for preview
+							if thumb, err := extMsg.DecodeThumbnail(); err == nil && thumb != nil {
+								if ancillary := thumb.GetAncillary(); ancillary != nil {
+									att.Width = int(ancillary.GetWidth())
+									att.Height = int(ancillary.GetHeight())
+								}
 							}
 							msg.Attachments = append(msg.Attachments, att)
 						}
@@ -1136,4 +1164,23 @@ func (c *Client) extractE2EEStickerAttachment(sticker *waConsumerApplication.Con
 	}
 
 	return att
+}
+
+// extractURLFromLPHP extracts the actual URL from Facebook's l.php redirect URL
+// e.g., "https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com&h=..." -> "https://example.com"
+func extractURLFromLPHP(addr string) string {
+	if addr == "" {
+		return ""
+	}
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return addr
+	}
+	// Check if this is a Facebook l.php redirect
+	if parsed.Path == "/l.php" || strings.HasSuffix(parsed.Path, "/l.php") {
+		if u := parsed.Query().Get("u"); u != "" {
+			return u
+		}
+	}
+	return addr
 }

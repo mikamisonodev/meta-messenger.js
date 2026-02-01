@@ -1607,6 +1607,9 @@ interface Attachment {
     duration?: number
     stickerId?: number
     previewUrl?: string
+    // For link attachments
+    description?: string    // Link description/subtitle
+    sourceText?: string     // Source domain text
     // For E2EE media download (only available in E2EE messages)
     mediaKey?: string      // Base64 encoded encryption key
     mediaSha256?: string   // Base64 encoded file SHA256

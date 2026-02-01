@@ -1607,6 +1607,9 @@ interface Attachment {
     duration?: number
     stickerId?: number
     previewUrl?: string
+    // Dành cho link attachments
+    description?: string    // Mô tả/subtitle của link
+    sourceText?: string     // Tên miền nguồn
     // Dành cho tải media E2EE (chỉ có trong tin nhắn E2EE)
     mediaKey?: string      // Khóa mã hóa dạng Base64
     mediaSha256?: string   // SHA256 file gốc dạng Base64

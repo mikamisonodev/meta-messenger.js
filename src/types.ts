@@ -255,9 +255,9 @@ export type AttachmentType = "image" | "video" | "audio" | "file" | "sticker" | 
 export interface Attachment {
     /** Attachment type */
     type: AttachmentType;
-    /** URL to download media (for regular messages) */
+    /** URL to download media (for regular messages) or the link URL (for link attachments) */
     url?: string;
-    /** Original filename */
+    /** Original filename or link title */
     fileName?: string;
     /** MIME type (e.g., 'image/jpeg') */
     mimeType?: string;
@@ -277,12 +277,10 @@ export interface Attachment {
     longitude?: number;
     /** Preview/thumbnail URL */
     previewUrl?: string;
-    
-    // === E2EE Media Download Fields ===
-    // These fields are only available for E2EE (end-to-end encrypted) messages.
-    // Use client.downloadE2EEMedia() to download and decrypt the media.
-    
-    /** Base64 encoded media encryption key (E2EE only) */
+    /** Link description/subtitle (for link attachments) */
+    description?: string;
+    /** Source domain text (for link attachments) */
+    sourceText?: string;
     mediaKey?: string;
     /** Base64 encoded SHA256 hash of the decrypted file (E2EE only) */
     mediaSha256?: string;
