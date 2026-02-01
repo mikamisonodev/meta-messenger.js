@@ -20,18 +20,10 @@ function defaultRepoSlug() {
         const m = repo.match(/github:(.+)/i);
         if (m) return m[1];
         if (/^[\w-]+\/[\w.-]+$/.test(repo)) return repo;
-<<<<<<< Updated upstream
-    }
-    else if (repo && typeof repo === "object" && repo.url) {
-        const m = repo.url.match(/github\.com[:/]+([^#]+?)(?:\.git)?$/i);
-        if (m) return m[1];
-    }
-=======
     } else if (repo && typeof repo === "object" && repo.url) {
         const m = repo.url.match(/github\.com[:/]+([^#]+?)(?:\.git)?$/i);
         if (m) return m[1];
     }
->>>>>>> Stashed changes
     return `${pkg.author}/${pkg.name}`;
 }
 
@@ -69,14 +61,9 @@ async function downloadTo(url, dstPath) {
     console.log(`[${pkg.name}] Downloading to: ${dstPath}`);
     await mkdir(dirname(dstPath), { recursive: true });
     const tmp = `${dstPath}.download`;
-<<<<<<< Updated upstream
-    try { await unlink(tmp); }
-    catch {
-=======
     try {
         await unlink(tmp);
     } catch {
->>>>>>> Stashed changes
         //
     }
     const res = await httpGet(url);
@@ -116,17 +103,11 @@ export async function downloadPrebuilt() {
         await downloadTo(url, out);
         console.log(`[${pkg.name}] Downloaded prebuilt from ${url} in ${Date.now() - totalStart}ms`);
         return true;
-<<<<<<< Updated upstream
-    }
-    catch (err) {
-        console.warn(`[${pkg.name}] No remote prebuilt found at ${url} (after ${Date.now() - totalStart}ms):`, err?.message || String(err));
-=======
     } catch (err) {
         console.warn(
             `[${pkg.name}] No remote prebuilt found at ${url} (after ${Date.now() - totalStart}ms):`,
             err?.message || String(err),
         );
->>>>>>> Stashed changes
         return false;
     }
 }
@@ -135,13 +116,9 @@ export async function downloadPrebuilt() {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
     downloadPrebuilt()
-<<<<<<< Updated upstream
-        .then(ok => { if (!ok) process.exit(1); })
-=======
         .then(ok => {
             if (!ok) process.exit(1);
         })
->>>>>>> Stashed changes
         .catch(err => {
             console.error(`[${pkg.name}] download-prebuilt failed:`, err?.message || String(err));
             process.exit(1);
