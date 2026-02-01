@@ -3,11 +3,14 @@ package bridge
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow/proto/waArmadilloApplication"
+	"go.mau.fi/whatsmeow/proto/waArmadilloXMA"
+	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waConsumerApplication"
 	"go.mau.fi/whatsmeow/types/events"
 
@@ -68,22 +71,25 @@ type Thread struct {
 
 // Attachment represents a media attachment
 type Attachment struct {
-	Type       string  `json:"type"` // "image", "video", "audio", "file", "sticker", "gif", "voice", "location"
-	URL        string  `json:"url,omitempty"`
-	FileName   string  `json:"fileName,omitempty"`
-	MimeType   string  `json:"mimeType,omitempty"`
-	FileSize   int64   `json:"fileSize,omitempty"`
-	Width      int     `json:"width,omitempty"`
-	Height     int     `json:"height,omitempty"`
-	Duration   int     `json:"duration,omitempty"` // in seconds for audio/video
-	StickerID  int64   `json:"stickerId,omitempty"`
-	Latitude   float64 `json:"latitude,omitempty"`
-	Longitude  float64 `json:"longitude,omitempty"`
-	PreviewURL string  `json:"previewUrl,omitempty"`
+	Type        string  `json:"type"` // "image", "video", "audio", "file", "sticker", "gif", "voice", "location", "link"
+	URL         string  `json:"url,omitempty"`
+	FileName    string  `json:"fileName,omitempty"`
+	MimeType    string  `json:"mimeType,omitempty"`
+	FileSize    int64   `json:"fileSize,omitempty"`
+	Width       int     `json:"width,omitempty"`
+	Height      int     `json:"height,omitempty"`
+	Duration    int     `json:"duration,omitempty"` // in seconds for audio/video
+	StickerID   int64   `json:"stickerId,omitempty"`
+	Latitude    float64 `json:"latitude,omitempty"`
+	Longitude   float64 `json:"longitude,omitempty"`
+	PreviewURL  string  `json:"previewUrl,omitempty"`
+	Description string  `json:"description,omitempty"` // For link attachments
+	SourceText  string  `json:"sourceText,omitempty"`  // Domain/source for link attachments
 	// For E2EE media download
-	MediaKey    []byte `json:"mediaKey,omitempty"`
-	MediaSHA256 []byte `json:"mediaSha256,omitempty"`
-	DirectPath  string `json:"directPath,omitempty"`
+	MediaKey       []byte `json:"mediaKey,omitempty"`
+	MediaSHA256    []byte `json:"mediaSha256,omitempty"`
+	MediaEncSHA256 []byte `json:"mediaEncSha256,omitempty"`
+	DirectPath     string `json:"directPath,omitempty"`
 }
 
 // ReplyTo represents reply info
@@ -440,12 +446,25 @@ func (c *Client) convertWrappedMessage(msg *table.WrappedMessage) *Message {
 
 	// Handle XMA attachments (links, shares, etc.)
 	for _, xma := range msg.XMAAttachments {
-		if xma.PreviewUrl != "" {
+		// Get the actual URL from CTA ActionUrl or fallback to xma.ActionUrl
+		var linkURL string
+		if xma.CTA != nil && xma.CTA.ActionUrl != "" {
+			linkURL = extractURLFromLPHP(xma.CTA.ActionUrl)
+		} else if xma.ActionUrl != "" {
+			linkURL = extractURLFromLPHP(xma.ActionUrl)
+		}
+
+		// Only add as link attachment if we have a URL or preview
+		if linkURL != "" || xma.PreviewUrl != "" {
 			m.Attachments = append(m.Attachments, &Attachment{
-				Type:       "link",
-				URL:        xma.ActionUrl,
-				PreviewURL: xma.PreviewUrl,
-				FileName:   xma.TitleText,
+				Type:        "link",
+				URL:         linkURL,
+				PreviewURL:  xma.PreviewUrl,
+				FileName:    xma.TitleText,
+				Description: xma.SubtitleText,
+				SourceText:  xma.SourceText,
+				Width:       int(xma.PreviewWidth),
+				Height:      int(xma.PreviewHeight),
 			})
 		}
 	}
@@ -610,14 +629,67 @@ func extractE2EEText(e *events.FBMessage) string {
 					return mt.MessageText.GetText()
 				}
 				if et, ok := c.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ExtendedTextMessage); ok {
-					return et.ExtendedTextMessage.GetText().GetText()
+					extMsg := et.ExtendedTextMessage
+					if extMsg == nil {
+						return ""
+					}
+					// Try GetText().GetText() first
+					if textMsg := extMsg.GetText(); textMsg != nil {
+						if text := textMsg.GetText(); text != "" {
+							return text
+						}
+					}
+					// Fallback to matchedText (the actual URL in the message)
+					if matched := extMsg.GetMatchedText(); matched != "" {
+						return matched
+					}
+					// Fallback to canonicalURL
+					if canonical := extMsg.GetCanonicalURL(); canonical != "" {
+						return canonical
+					}
 				}
 			}
 		}
 	}
 
-	if _, ok := e.Message.(*waArmadilloApplication.Armadillo); ok {
-		// Armadillo special messages - could be parsed further
+	if armadillo, ok := e.Message.(*waArmadilloApplication.Armadillo); ok {
+		// Armadillo special messages
+		if payload := armadillo.GetPayload(); payload != nil {
+			if content := payload.GetContent(); content != nil {
+				// ExtendedContentMessage - used for link shares
+				if extMsg := content.GetExtendedContentMessage(); extMsg != nil {
+					// Try MessageText first (the actual text the user typed)
+					if text := extMsg.GetMessageText(); text != "" {
+						return text
+					}
+					// Fallback to TitleText (link title)
+					if title := extMsg.GetTitleText(); title != "" {
+						return title
+					}
+					// Fallback to ActionURL from CTAs
+					if ctas := extMsg.GetCtas(); len(ctas) > 0 {
+						for _, cta := range ctas {
+							if actionURL := cta.GetActionURL(); actionURL != "" {
+								// Try to extract actual URL from /l.php redirect
+								if parsedURL := extractURLFromLPHP(actionURL); parsedURL != "" {
+									return parsedURL
+								}
+								return actionURL
+							}
+							if nativeURL := cta.GetNativeURL(); nativeURL != "" {
+								return nativeURL
+							}
+						}
+					}
+				}
+				// ExtendedContentMessageWithSear - extended content with search
+				if searMsg := content.GetExtendedMessageContentWithSear(); searMsg != nil {
+					if nativeURL := searMsg.GetNativeURL(); nativeURL != "" {
+						return nativeURL
+					}
+				}
+			}
+		}
 	}
 
 	return ""
@@ -773,6 +845,75 @@ func extractE2EERevokedMessageID(e *events.FBMessage) string {
 	return ""
 }
 
+// extractE2EEMentions extracts mentions from a MessageText
+func extractE2EEMentions(text *waCommon.MessageText) []*Mention {
+	if text == nil {
+		return nil
+	}
+	jids := text.GetMentionedJID()
+	if len(jids) == 0 {
+		return nil
+	}
+
+	mentions := make([]*Mention, 0, len(jids))
+	textContent := text.GetText()
+
+	for _, jid := range jids {
+		// Extract user ID from JID (format: "123456789@msgr" or "123456789@s.whatsapp.net")
+		var userID int64
+		atIdx := strings.Index(jid, "@")
+		if atIdx > 0 {
+			userID, _ = strconv.ParseInt(jid[:atIdx], 10, 64)
+		}
+		if userID == 0 {
+			continue
+		}
+
+		// Try to find mention position in text (format: @123456789)
+		mentionText := "@" + jid
+		offset := strings.Index(textContent, mentionText)
+		length := len(mentionText)
+
+		mentions = append(mentions, &Mention{
+			UserID: userID,
+			Offset: offset,
+			Length: length,
+			Type:   "user",
+		})
+	}
+	return mentions
+}
+
+// extractE2EEReplyTo extracts reply info from FBMessage metadata
+func extractE2EEReplyTo(e *events.FBMessage) *ReplyTo {
+	if e.FBApplication == nil {
+		return nil
+	}
+	metadata := e.FBApplication.GetMetadata()
+	if metadata == nil {
+		return nil
+	}
+	qm := metadata.GetQuotedMessage()
+	if qm == nil {
+		return nil
+	}
+
+	replyTo := &ReplyTo{
+		MessageID: qm.GetStanzaID(),
+	}
+
+	// Extract sender ID from participant JID
+	participant := qm.GetParticipant()
+	if participant != "" {
+		atIdx := strings.Index(participant, "@")
+		if atIdx > 0 {
+			replyTo.SenderID, _ = strconv.ParseInt(participant[:atIdx], 10, 64)
+		}
+	}
+
+	return replyTo
+}
+
 // extractE2EEMessage extracts full message content including media
 func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMessage {
 	// Parse threadID from chatJID (format: "123456789@msgr" -> 123456789)
@@ -793,6 +934,11 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 		Mentions:    []*Mention{},
 	}
 
+	// Extract reply info from FBApplication metadata
+	if replyTo := extractE2EEReplyTo(e); replyTo != nil {
+		msg.ReplyTo = replyTo
+	}
+
 	if e.Message == nil {
 		return msg
 	}
@@ -801,52 +947,48 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
 		if p := ca.GetPayload(); p != nil {
 			if content := p.GetContent(); content != nil {
+
 				// Check for image
 				if img, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ImageMessage); ok {
-					att := &Attachment{
-						Type: "image",
-					}
+					att := c.extractE2EEImageAttachment(img.ImageMessage)
 					msg.Attachments = append(msg.Attachments, att)
-					// Caption
+					// Caption with mentions
 					if caption := img.ImageMessage.GetCaption(); caption != nil {
 						msg.Text = caption.GetText()
+						if mentions := extractE2EEMentions(caption); mentions != nil {
+							msg.Mentions = mentions
+						}
 					}
 				}
 
 				// Check for video
 				if vid, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_VideoMessage); ok {
-					att := &Attachment{
-						Type: "video",
-					}
+					att := c.extractE2EEVideoAttachment(vid.VideoMessage)
 					msg.Attachments = append(msg.Attachments, att)
-					// Caption
+					// Caption with mentions
 					if caption := vid.VideoMessage.GetCaption(); caption != nil {
 						msg.Text = caption.GetText()
+						if mentions := extractE2EEMentions(caption); mentions != nil {
+							msg.Mentions = mentions
+						}
 					}
 				}
 
 				// Check for audio/voice
-				if _, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_AudioMessage); ok {
-					att := &Attachment{
-						Type: "voice",
-					}
+				if audio, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_AudioMessage); ok {
+					att := c.extractE2EEAudioAttachment(audio.AudioMessage)
 					msg.Attachments = append(msg.Attachments, att)
 				}
 
 				// Check for document/file
 				if doc, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_DocumentMessage); ok {
-					att := &Attachment{
-						Type:     "file",
-						FileName: doc.DocumentMessage.GetFileName(),
-					}
+					att := c.extractE2EEDocumentAttachment(doc.DocumentMessage)
 					msg.Attachments = append(msg.Attachments, att)
 				}
 
 				// Check for sticker
-				if _, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_StickerMessage); ok {
-					att := &Attachment{
-						Type: "sticker",
-					}
+				if sticker, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_StickerMessage); ok {
+					att := c.extractE2EEStickerAttachment(sticker.StickerMessage)
 					msg.Attachments = append(msg.Attachments, att)
 				}
 
@@ -861,17 +1003,56 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 					msg.Attachments = append(msg.Attachments, att)
 				}
 
+				// Check for text message with mentions
+				if text, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_MessageText); ok {
+					if mentions := extractE2EEMentions(text.MessageText); mentions != nil {
+						msg.Mentions = mentions
+					}
+				}
+
 				// Check for extended text (with URL preview)
 				if ext, ok := content.GetContent().(*waConsumerApplication.ConsumerApplication_Content_ExtendedTextMessage); ok {
 					if extMsg := ext.ExtendedTextMessage; extMsg != nil {
+						var textContent, matchedText, canonicalURL string
 						if textMsg := extMsg.GetText(); textMsg != nil {
-							msg.Text = textMsg.GetText()
+							textContent = textMsg.GetText()
+							if textContent != "" {
+								msg.Text = textContent
+							}
+							// Extract mentions from extended text
+							if mentions := extractE2EEMentions(textMsg); mentions != nil {
+								msg.Mentions = mentions
+							}
 						}
-						if extMsg.GetCanonicalURL() != "" {
+						matchedText = extMsg.GetMatchedText()
+						canonicalURL = extMsg.GetCanonicalURL()
+
+						// If text is still empty, use matched text (URL)
+						if msg.Text == "" && matchedText != "" {
+							msg.Text = matchedText
+						}
+						// If still empty, use canonical URL
+						if msg.Text == "" && canonicalURL != "" {
+							msg.Text = canonicalURL
+						}
+						// Create link attachment if we have a URL
+						linkURL := canonicalURL
+						if linkURL == "" {
+							linkURL = matchedText
+						}
+						if linkURL != "" {
 							att := &Attachment{
-								Type:     "link",
-								URL:      extMsg.GetCanonicalURL(),
-								FileName: extMsg.GetTitle(),
+								Type:        "link",
+								URL:         linkURL,
+								FileName:    extMsg.GetTitle(),
+								Description: extMsg.GetDescription(),
+							}
+							// Try to decode thumbnail for preview
+							if thumb, err := extMsg.DecodeThumbnail(); err == nil && thumb != nil {
+								if ancillary := thumb.GetAncillary(); ancillary != nil {
+									att.Width = int(ancillary.GetWidth())
+									att.Height = int(ancillary.GetHeight())
+								}
 							}
 							msg.Attachments = append(msg.Attachments, att)
 						}
@@ -881,5 +1062,277 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 		}
 	}
 
+	// Extract from Armadillo (special messages like links, payments, etc.)
+	if armadillo, ok := e.Message.(*waArmadilloApplication.Armadillo); ok {
+		payload := armadillo.GetPayload()
+		if payload == nil {
+			return msg
+		}
+
+		// Try Content first (link shares, etc.)
+		if content := payload.GetContent(); content != nil {
+			// ExtendedContentMessage - used for link shares
+			if extMsg := content.GetExtendedContentMessage(); extMsg != nil {
+				att := c.extractArmadilloLinkAttachment(extMsg)
+				if att != nil {
+					msg.Attachments = append(msg.Attachments, att)
+				}
+			}
+
+			// ExtendedContentMessageWithSear
+			if searMsg := content.GetExtendedMessageContentWithSear(); searMsg != nil {
+				if nativeURL := searMsg.GetNativeURL(); nativeURL != "" {
+					att := &Attachment{
+						Type: "link",
+						URL:  nativeURL,
+					}
+					msg.Attachments = append(msg.Attachments, att)
+				}
+			}
+		}
+	}
+
 	return msg
+}
+
+// extractArmadilloLinkAttachment extracts link attachment from Armadillo ExtendedContentMessage
+func (c *Client) extractArmadilloLinkAttachment(extMsg *waArmadilloXMA.ExtendedContentMessage) *Attachment {
+	if extMsg == nil {
+		return nil
+	}
+
+	// Try to get URL from CTAs
+	var linkURL string
+	if ctas := extMsg.GetCtas(); len(ctas) > 0 {
+		for _, cta := range ctas {
+			if actionURL := cta.GetActionURL(); actionURL != "" {
+				// Try to extract actual URL from /l.php redirect
+				if parsedURL := extractURLFromLPHP(actionURL); parsedURL != "" {
+					linkURL = parsedURL
+				} else {
+					linkURL = actionURL
+				}
+				break
+			}
+			if nativeURL := cta.GetNativeURL(); nativeURL != "" {
+				linkURL = nativeURL
+				break
+			}
+		}
+	}
+
+	// If no URL found, skip creating attachment
+	if linkURL == "" {
+		return nil
+	}
+
+	att := &Attachment{
+		Type:        "link",
+		URL:         linkURL,
+		FileName:    extMsg.GetTitleText(),    // Use as fileName (title)
+		Description: extMsg.GetSubtitleText(), // Use as description
+	}
+
+	// Additional metadata
+	if header := extMsg.GetHeaderTitle(); header != "" && att.FileName == "" {
+		att.FileName = header
+	}
+
+	// Set source text from overlay
+	if overlay := extMsg.GetOverlayTitle(); overlay != "" {
+		att.SourceText = overlay
+	}
+
+	return att
+}
+
+// extractE2EEImageAttachment extracts image attachment with full metadata
+func (c *Client) extractE2EEImageAttachment(img *waConsumerApplication.ConsumerApplication_ImageMessage) *Attachment {
+	att := &Attachment{
+		Type: "image",
+	}
+
+	// Try to decode transport for metadata
+	transport, err := img.Decode()
+	if err == nil && transport != nil {
+		if ancillary := transport.GetAncillary(); ancillary != nil {
+			att.Width = int(ancillary.GetWidth())
+			att.Height = int(ancillary.GetHeight())
+		}
+		if integral := transport.GetIntegral(); integral != nil {
+			if waTransport := integral.GetTransport(); waTransport != nil {
+				if ancillary := waTransport.GetAncillary(); ancillary != nil {
+					att.MimeType = ancillary.GetMimetype()
+					att.FileSize = int64(ancillary.GetFileLength())
+				}
+				if integral := waTransport.GetIntegral(); integral != nil {
+					att.MediaKey = integral.GetMediaKey()
+					att.MediaSHA256 = integral.GetFileSHA256()
+					att.MediaEncSHA256 = integral.GetFileEncSHA256()
+					if integral.DirectPath != nil {
+						att.DirectPath = *integral.DirectPath
+					}
+				}
+			}
+		}
+	}
+
+	return att
+}
+
+// extractE2EEVideoAttachment extracts video attachment with full metadata
+func (c *Client) extractE2EEVideoAttachment(vid *waConsumerApplication.ConsumerApplication_VideoMessage) *Attachment {
+	att := &Attachment{
+		Type: "video",
+	}
+
+	// Try to decode transport for metadata
+	transport, err := vid.Decode()
+	if err == nil && transport != nil {
+		if ancillary := transport.GetAncillary(); ancillary != nil {
+			att.Width = int(ancillary.GetWidth())
+			att.Height = int(ancillary.GetHeight())
+			att.Duration = int(ancillary.GetSeconds())
+		}
+		if integral := transport.GetIntegral(); integral != nil {
+			if waTransport := integral.GetTransport(); waTransport != nil {
+				if ancillary := waTransport.GetAncillary(); ancillary != nil {
+					att.MimeType = ancillary.GetMimetype()
+					att.FileSize = int64(ancillary.GetFileLength())
+				}
+				if integral := waTransport.GetIntegral(); integral != nil {
+					att.MediaKey = integral.GetMediaKey()
+					att.MediaSHA256 = integral.GetFileSHA256()
+					att.MediaEncSHA256 = integral.GetFileEncSHA256()
+					if integral.DirectPath != nil {
+						att.DirectPath = *integral.DirectPath
+					}
+				}
+			}
+		}
+	}
+
+	return att
+}
+
+// extractE2EEAudioAttachment extracts audio attachment with full metadata
+func (c *Client) extractE2EEAudioAttachment(audio *waConsumerApplication.ConsumerApplication_AudioMessage) *Attachment {
+	att := &Attachment{
+		Type: "voice",
+	}
+
+	// Check PTT flag - if true, it's a voice message, otherwise it's an audio file
+	if !audio.GetPTT() {
+		att.Type = "audio"
+	}
+
+	// Try to decode transport for metadata
+	transport, err := audio.Decode()
+	if err == nil && transport != nil {
+		if ancillary := transport.GetAncillary(); ancillary != nil {
+			att.Duration = int(ancillary.GetSeconds())
+		}
+		if integral := transport.GetIntegral(); integral != nil {
+			if waTransport := integral.GetTransport(); waTransport != nil {
+				if ancillary := waTransport.GetAncillary(); ancillary != nil {
+					att.MimeType = ancillary.GetMimetype()
+					att.FileSize = int64(ancillary.GetFileLength())
+				}
+				if integral := waTransport.GetIntegral(); integral != nil {
+					att.MediaKey = integral.GetMediaKey()
+					att.MediaSHA256 = integral.GetFileSHA256()
+					att.MediaEncSHA256 = integral.GetFileEncSHA256()
+					if integral.DirectPath != nil {
+						att.DirectPath = *integral.DirectPath
+					}
+				}
+			}
+		}
+	}
+
+	return att
+}
+
+// extractE2EEDocumentAttachment extracts document attachment with full metadata
+func (c *Client) extractE2EEDocumentAttachment(doc *waConsumerApplication.ConsumerApplication_DocumentMessage) *Attachment {
+	att := &Attachment{
+		Type:     "file",
+		FileName: doc.GetFileName(),
+	}
+
+	// Try to decode transport for metadata
+	transport, err := doc.Decode()
+	if err == nil && transport != nil {
+		if integral := transport.GetIntegral(); integral != nil {
+			if waTransport := integral.GetTransport(); waTransport != nil {
+				if ancillary := waTransport.GetAncillary(); ancillary != nil {
+					att.MimeType = ancillary.GetMimetype()
+					att.FileSize = int64(ancillary.GetFileLength())
+				}
+				if integral := waTransport.GetIntegral(); integral != nil {
+					att.MediaKey = integral.GetMediaKey()
+					att.MediaSHA256 = integral.GetFileSHA256()
+					att.MediaEncSHA256 = integral.GetFileEncSHA256()
+					if integral.DirectPath != nil {
+						att.DirectPath = *integral.DirectPath
+					}
+				}
+			}
+		}
+	}
+
+	return att
+}
+
+// extractE2EEStickerAttachment extracts sticker attachment with full metadata
+func (c *Client) extractE2EEStickerAttachment(sticker *waConsumerApplication.ConsumerApplication_StickerMessage) *Attachment {
+	att := &Attachment{
+		Type: "sticker",
+	}
+
+	// Try to decode transport for metadata
+	transport, err := sticker.Decode()
+	if err == nil && transport != nil {
+		if ancillary := transport.GetAncillary(); ancillary != nil {
+			att.Width = int(ancillary.GetWidth())
+			att.Height = int(ancillary.GetHeight())
+		}
+		if integral := transport.GetIntegral(); integral != nil {
+			if waTransport := integral.GetTransport(); waTransport != nil {
+				if ancillary := waTransport.GetAncillary(); ancillary != nil {
+					att.MimeType = ancillary.GetMimetype()
+					att.FileSize = int64(ancillary.GetFileLength())
+				}
+				if integral := waTransport.GetIntegral(); integral != nil {
+					att.MediaKey = integral.GetMediaKey()
+					att.MediaSHA256 = integral.GetFileSHA256()
+					att.MediaEncSHA256 = integral.GetFileEncSHA256()
+					if integral.DirectPath != nil {
+						att.DirectPath = *integral.DirectPath
+					}
+				}
+			}
+		}
+	}
+
+	return att
+}
+
+// extractURLFromLPHP extracts the actual URL from Facebook's l.php redirect URL
+// e.g., "https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com&h=..." -> "https://example.com"
+func extractURLFromLPHP(addr string) string {
+	if addr == "" {
+		return ""
+	}
+	parsed, err := url.Parse(addr)
+	if err != nil {
+		return addr
+	}
+	// Check if this is a Facebook l.php redirect
+	if parsed.Path == "/l.php" || strings.HasSuffix(parsed.Path, "/l.php") {
+		if u := parsed.Query().Get("u"); u != "" {
+			return u
+		}
+	}
+	return addr
 }
