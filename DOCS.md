@@ -105,8 +105,6 @@ Or use environment variables:
 const cookies = {
     c_user: process.env.FB_C_USER,
     xs: process.env.FB_XS,
-    fr: process.env.FB_FR,
-    datr: process.env.FB_DATR,
     // other cookies...
 }
 ```
@@ -122,7 +120,7 @@ Create a new client to connect to Messenger.
 
 __Parameters__
 
-* `cookies`: Object containing required cookies (`c_user`, `xs`, `datr`, `fr`, ...).
+* `cookies`: Object containing required cookies (`c_user`, `xs`). Other cookies like `datr`, `fr` are optional.
 * `options` (optional): Configuration object:
   * `platform`: `'facebook'` | `'messenger'` | `'instagram'` - Platform for cookies [Library currently only tested with `'facebook'`] (default: `'facebook'`)
   * `enableE2EE`: Boolean - Enable end-to-end encryption (for Messenger) (default: `true`)
@@ -1725,8 +1723,9 @@ This event is only emitted when you initialize the client with the `deviceData` 
 interface Cookies {
     c_user: string
     xs: string
-    datr: string
-    [key: string]: string
+    datr?: string
+    fr?: string
+    [key: string]: string | undefined
 }
 ```
 

@@ -141,12 +141,12 @@ API hỗ trợ nhiều định dạng cookies thông qua `Utils.parseCookies()`:
 4. **Netscape cookie file format**
 5. **Base64 encoded** (bất kỳ định dạng nào ở trên)
 
-Cookies bắt buộc: `c_user`, `xs`, `datr`, `fr`
+Cookies bắt buộc: `c_user`, `xs` (các cookie khác như `datr`, `fr` là tùy chọn)
 
 ## FAQs
 
 1. **Làm sao để lấy cookies?**
-> Đăng nhập Facebook trên trình duyệt, mở DevTools (F12), vào tab Application > Cookies, copy các giá trị `c_user`, `xs`, `datr`, `fr`.
+> Đăng nhập Facebook trên trình duyệt, mở DevTools (F12), vào tab Application > Cookies, copy các giá trị `c_user`, `xs` (và tùy chọn `datr`, `fr`).
 
 2. **Tại sao tôi không nhận được tin nhắn E2EE?**
 > Đảm bảo bạn đã enable E2EE với `enableE2EE: true` và đợi event `fullyReady` trước khi xử lý tin nhắn.

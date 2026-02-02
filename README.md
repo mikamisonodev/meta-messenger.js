@@ -141,12 +141,12 @@ The API supports multiple cookie formats through `Utils.parseCookies()`:
 4. **Netscape cookie file format**
 5. **Base64 encoded** (any of the above formats)
 
-Required cookies: `c_user`, `xs`, `datr`, `fr`
+Required cookies: `c_user`, `xs` (others like `datr`, `fr` are optional)
 
 ## FAQs
 
 1. **How do I get cookies?**
-> Log in to Facebook in your browser, open DevTools (F12), go to Application > Cookies tab, and copy the values for `c_user`, `xs`, `datr`, `fr`.
+> Log in to Facebook in your browser, open DevTools (F12), go to Application > Cookies tab, and copy the values for `c_user`, `xs` (and optionally `datr`, `fr`).
 
 2. **Why am I not receiving E2EE messages?**
 > Make sure you have enabled E2EE with `enableE2EE: true` and wait for the `fullyReady` event before processing messages.

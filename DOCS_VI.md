@@ -105,8 +105,6 @@ Hoặc sử dụng biến môi trường:
 const cookies = {
     c_user: process.env.FB_C_USER,
     xs: process.env.FB_XS,
-    fr: process.env.FB_FR,
-    datr: process.env.FB_DATR,
     // các cookie khác...
 }
 ```
@@ -122,7 +120,7 @@ Tạo một client mới để kết nối đến Messenger.
 
 __Tham số__
 
-* `cookies`: Object chứa các cookies cần thiết (`c_user`, `xs`, `datr`, `fr`, ...).
+* `cookies`: Object chứa các cookies cần thiết (`c_user`, `xs`). Các cookies khác như `datr`, `fr` là tùy chọn.
 * `options` (tùy chọn): Object cấu hình:
   * `platform`: `'facebook'` | `'messenger'` | `'instagram'` - Cookie của nền tảng nào [Thư viện hiện chỉ kiểm tra với `'facebook'`] (mặc định: `'facebook'`)
   * `enableE2EE`: Boolean - Bật mã hóa đầu cuối (Cho Messenger) (mặc định: `true`)
@@ -1725,8 +1723,9 @@ Event này chỉ được phát ra khi bạn khởi tạo client với option `d
 interface Cookies {
     c_user: string
     xs: string
-    datr: string
-    [key: string]: string
+    datr?: string
+    fr?: string
+    [key: string]: string | undefined
 }
 ```
 
