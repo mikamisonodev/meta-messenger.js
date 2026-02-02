@@ -54,6 +54,9 @@
   * [`Utils.parseCookies()`](#parseCookies)
   * [`Utils.validate()`](#validate)
   * [`Utils.getMissing()`](#getMissing)
+  * [`isThumbsUpSticker()`](#isThumbsUpSticker)
+  * [`extractUrlFromLPHP()`](#extractUrlFromLPHP)
+  * [`THUMBS_UP_STICKER_IDS`](#THUMBS_UP_STICKER_IDS)
 * [Events](#events)
   * [`message`](#event-message) 🔵
   * [`e2eeMessage`](#event-e2eeMessage) 🟢
@@ -1191,6 +1194,92 @@ if (missing.length > 0) {
 
 ---
 
+<a name="isThumbsUpSticker"></a>
+## isThumbsUpSticker(stickerId)
+
+Kiểm tra xem sticker ID có phải là sticker thumbs-up hay không.
+
+Facebook Messenger hiển thị nút "thumbs up" đặc biệt khi gửi sticker. Có 3 biến thể tùy thuộc vào thời gian người dùng giữ nút. Function này kiểm tra xem sticker ID có phải là một trong các sticker thumbs-up hay không.
+
+__Tham số__
+
+* `stickerId`: number | undefined - Sticker ID cần kiểm tra
+
+__Trả về__
+
+boolean - True nếu đây là sticker thumbs-up
+
+__Ví dụ__
+
+```typescript
+import { isThumbsUpSticker } from 'meta-messenger.js'
+
+client.on('message', (msg) => {
+    for (const att of msg.attachments || []) {
+        if (att.type === 'sticker' && isThumbsUpSticker(att.stickerId)) {
+            console.log('Người dùng gửi thumbs up! 👍')
+        }
+    }
+})
+```
+
+---
+
+<a name="extractUrlFromLPHP"></a>
+## extractUrlFromLPHP(url)
+
+Trích xuất URL thực tế từ URL redirect l.php của Facebook.
+
+Facebook bao bọc các URL bên ngoài trong một redirect theo dõi (l.php). Function này trích xuất URL gốc từ redirect.
+
+__Tham số__
+
+* `url`: string - URL cần parse (có thể là l.php redirect)
+
+__Trả về__
+
+string - URL được trích xuất hoặc URL gốc nếu không phải redirect
+
+__Ví dụ__
+
+```typescript
+import { extractUrlFromLPHP } from 'meta-messenger.js'
+
+const actualUrl = extractUrlFromLPHP('https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com')
+// Trả về: 'https://example.com'
+
+// URL không phải redirect sẽ trả về nguyên bản
+const normalUrl = extractUrlFromLPHP('https://example.com')
+// Trả về: 'https://example.com'
+```
+
+---
+
+<a name="THUMBS_UP_STICKER_IDS"></a>
+## THUMBS_UP_STICKER_IDS
+
+Các hằng số cho sticker ID thumbs-up của Facebook.
+
+Đây là các sticker ID được gửi khi ai đó nhấn nút thumbs-up trong Messenger. Có ba biến thể tùy thuộc vào thời gian người gửi giữ nút.
+
+__Giá trị__
+
+* `THUMBS_UP_STICKER_IDS.SMALL`: 369239263222822
+* `THUMBS_UP_STICKER_IDS.MEDIUM`: 369239343222814
+* `THUMBS_UP_STICKER_IDS.LARGE`: 369239383222810
+
+__Ví dụ__
+
+```typescript
+import { THUMBS_UP_STICKER_IDS } from 'meta-messenger.js'
+
+if (attachment.stickerId === THUMBS_UP_STICKER_IDS.LARGE) {
+    console.log('Người dùng giữ nút lâu!')
+}
+```
+
+---
+
 # Events
 
 > **Chú thích:**
@@ -1636,6 +1725,8 @@ interface Mention {
     userId: number
     offset: number
     length: number
+    /** Loại mention: user (người dùng), page, group, hoặc thread */
+    type?: 'user' | 'page' | 'group' | 'thread'
 }
 ```
 

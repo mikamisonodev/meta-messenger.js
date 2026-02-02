@@ -62,6 +62,8 @@ export type { ClientEventMap } from "./client.js";
 export { Client } from "./client.js";
 export { UIDLogin } from "./login.js";
 export {
+    type Attachment,
+    type AttachmentType,
     type BaseEvent,
     type ClientEvent,
     type ClientOptions,
@@ -78,6 +80,7 @@ export {
     type EventType,
     type InitialData,
     type LogLevel,
+    type Mention,
     type Message,
     type MessageEditEvent,
     type MessageEvent,
@@ -86,6 +89,7 @@ export {
     type ReactionEvent,
     type ReadyEvent,
     type ReconnectedEvent,
+    type ReplyTo,
     type SearchUserResult,
     type SendMessageOptions,
     type SendMessageResult,
@@ -97,7 +101,7 @@ export {
     type User,
     type UserInfo,
 } from "./types.js";
-export { type CookieObject, Utils } from "./utils.js";
+export { type CookieObject, extractUrlFromLPHP, isThumbsUpSticker, THUMBS_UP_STICKER_IDS, Utils } from "./utils.js";
 
 import { Client } from "./client.js";
 import type { ClientOptions, Cookies } from "./types.js";

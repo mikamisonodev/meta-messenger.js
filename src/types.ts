@@ -321,7 +321,8 @@ export interface Mention {
     userId: number;
     offset: number;
     length: number;
-    type?: "user" | "page" | "group";
+    /** Mention type: user (person), page, group, or thread */
+    type?: "user" | "page" | "group" | "thread";
 }
 
 /**

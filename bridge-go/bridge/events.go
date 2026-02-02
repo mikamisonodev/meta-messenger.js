@@ -18,6 +18,17 @@ import (
 	"go.mau.fi/mautrix-meta/pkg/messagix/table"
 )
 
+// The fake stickers that are sent when someone presses the thumbs-up
+// button in Messenger. They are handled specially by the Messenger
+// web client instead of being displayed as normal stickers. There are
+// three variants depending on how long the sending user held down the
+// send button.
+const (
+	facebookThumbsUpSmallStickerID  int64 = 369239263222822
+	facebookThumbsUpMediumStickerID int64 = 369239343222814
+	facebookThumbsUpLargeStickerID  int64 = 369239383222810
+)
+
 // EventType represents the type of event
 type EventType string
 
@@ -351,7 +362,13 @@ func (c *Client) handleTable(tbl *table.LSTable) {
 }
 
 // parseMentions parses comma-separated mention strings into Mention structs
+// Note: offsets and lengths are in UTF-16 code units (Facebook's format)
 func parseMentions(offsets, lengths, ids string) []*Mention {
+	return parseMentionsWithTypes(offsets, lengths, ids, "")
+}
+
+// parseMentionsWithTypes parses comma-separated mention strings with types
+func parseMentionsWithTypes(offsets, lengths, ids, types string) []*Mention {
 	if offsets == "" || ids == "" {
 		return nil
 	}
@@ -359,6 +376,7 @@ func parseMentions(offsets, lengths, ids string) []*Mention {
 	offsetParts := strings.Split(offsets, ",")
 	lengthParts := strings.Split(lengths, ",")
 	idParts := strings.Split(ids, ",")
+	typeParts := strings.Split(types, ",")
 
 	// Need at least matching offsets and ids
 	count := len(offsetParts)
@@ -380,10 +398,22 @@ func parseMentions(offsets, lengths, ids string) []*Mention {
 		if err != nil {
 			continue
 		}
+		mentionType := "user" // default
+		if i < len(typeParts) {
+			switch strings.TrimSpace(typeParts[i]) {
+			case "p":
+				mentionType = "user" // person
+			case "t":
+				mentionType = "thread" // thread mention
+			case "g":
+				mentionType = "group" // group mention
+			}
+		}
 		mentions = append(mentions, &Mention{
 			UserID: userID,
 			Offset: offset,
 			Length: length,
+			Type:   mentionType,
 		})
 	}
 	return mentions
@@ -391,6 +421,17 @@ func parseMentions(offsets, lengths, ids string) []*Mention {
 
 // convertWrappedMessage converts a wrapped message with attachments
 func (c *Client) convertWrappedMessage(msg *table.WrappedMessage) *Message {
+	// Handle thumbs-up sticker as emoji (same as Messenger web client)
+	if len(msg.Stickers) == 1 {
+		stickerID := msg.Stickers[0].TargetId
+		if stickerID == facebookThumbsUpLargeStickerID ||
+			stickerID == facebookThumbsUpMediumStickerID ||
+			stickerID == facebookThumbsUpSmallStickerID {
+			msg.Text = "👍"
+			msg.Stickers = nil
+		}
+	}
+
 	m := &Message{
 		ID:          msg.MessageId,
 		ThreadID:    msg.ThreadKey,
@@ -411,13 +452,22 @@ func (c *Client) convertWrappedMessage(msg *table.WrappedMessage) *Message {
 		}
 	}
 
-	// Parse mentions from comma-separated strings
-	if mentions := parseMentions(msg.MentionOffsets, msg.MentionLengths, msg.MentionIds); mentions != nil {
+	// Parse mentions from comma-separated strings (including types)
+	if mentions := parseMentionsWithTypes(msg.MentionOffsets, msg.MentionLengths, msg.MentionIds, msg.MentionTypes); mentions != nil {
 		m.Mentions = mentions
 	}
 
 	// Handle blob attachments (images, videos, files, etc.)
+	// Track seen fbids to avoid duplicates (Facebook sometimes sends duplicate LSInsertBlobAttachment)
+	seenBlobFBIDs := make(map[string]bool)
 	for _, blob := range msg.BlobAttachments {
+		// Skip duplicate blobs (exact same AttachmentFbid)
+		if blob.AttachmentFbid != "" {
+			if seenBlobFBIDs[blob.AttachmentFbid] {
+				continue
+			}
+			seenBlobFBIDs[blob.AttachmentFbid] = true
+		}
 		att := c.convertBlobAttachment(blob)
 		if att != nil {
 			m.Attachments = append(m.Attachments, att)
@@ -444,8 +494,40 @@ func (c *Client) convertWrappedMessage(msg *table.WrappedMessage) *Message {
 		})
 	}
 
-	// Handle XMA attachments (links, shares, etc.)
+	// Handle XMA attachments (links, shares, locations, etc.)
 	for _, xma := range msg.XMAAttachments {
+		// Check if this is a location attachment
+		if xma.CTA != nil && xma.CTA.Type_ == "xma_map" {
+			// Parse location from NativeUrl (format: "lat,lng")
+			if xma.CTA.NativeUrl != "" {
+				parts := strings.Split(xma.CTA.NativeUrl, ",")
+				if len(parts) == 2 {
+					lat, _ := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+					lng, _ := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+					m.Attachments = append(m.Attachments, &Attachment{
+						Type:        "location",
+						Latitude:    lat,
+						Longitude:   lng,
+						FileName:    xma.TitleText,    // Address name
+						Description: xma.SubtitleText, // Address details
+					})
+					continue
+				}
+			}
+			// Live location or invalid location - add as notice
+			m.Attachments = append(m.Attachments, &Attachment{
+				Type:        "location",
+				FileName:    xma.TitleText,
+				Description: xma.SubtitleText,
+			})
+			continue
+		}
+
+		// Skip poll metadata (handled separately if needed)
+		if xma.CTA != nil && strings.HasPrefix(xma.CTA.Type_, "xma_poll_") {
+			continue
+		}
+
 		// Get the actual URL from CTA ActionUrl or fallback to xma.ActionUrl
 		var linkURL string
 		if xma.CTA != nil && xma.CTA.ActionUrl != "" {

@@ -54,6 +54,9 @@
   * [`Utils.parseCookies()`](#parseCookies)
   * [`Utils.validate()`](#validate)
   * [`Utils.getMissing()`](#getMissing)
+  * [`isThumbsUpSticker()`](#isThumbsUpSticker)
+  * [`extractUrlFromLPHP()`](#extractUrlFromLPHP)
+  * [`THUMBS_UP_STICKER_IDS`](#THUMBS_UP_STICKER_IDS)
 * [Events](#events)
   * [`message`](#event-message) 🔵
   * [`e2eeMessage`](#event-e2eeMessage) 🟢
@@ -1191,6 +1194,92 @@ if (missing.length > 0) {
 
 ---
 
+<a name="isThumbsUpSticker"></a>
+## isThumbsUpSticker(stickerId)
+
+Check if a sticker ID is a thumbs-up sticker.
+
+Facebook Messenger displays a special "thumbs up" button that sends a sticker. There are 3 variants depending on how long the user holds the button. This function checks if a sticker ID is one of these thumbs-up stickers.
+
+__Parameters__
+
+* `stickerId`: number | undefined - The sticker ID to check
+
+__Returns__
+
+boolean - True if this is a thumbs-up sticker
+
+__Example__
+
+```typescript
+import { isThumbsUpSticker } from 'meta-messenger.js'
+
+client.on('message', (msg) => {
+    for (const att of msg.attachments || []) {
+        if (att.type === 'sticker' && isThumbsUpSticker(att.stickerId)) {
+            console.log('User sent a thumbs up! 👍')
+        }
+    }
+})
+```
+
+---
+
+<a name="extractUrlFromLPHP"></a>
+## extractUrlFromLPHP(url)
+
+Extract actual URL from Facebook's l.php redirect URL.
+
+Facebook wraps external URLs in a tracking redirect (l.php). This function extracts the original URL from the redirect.
+
+__Parameters__
+
+* `url`: string - The URL to parse (may be an l.php redirect)
+
+__Returns__
+
+string - The extracted URL or the original URL if not a redirect
+
+__Example__
+
+```typescript
+import { extractUrlFromLPHP } from 'meta-messenger.js'
+
+const actualUrl = extractUrlFromLPHP('https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com')
+// Returns: 'https://example.com'
+
+// Non-redirect URLs are returned as-is
+const normalUrl = extractUrlFromLPHP('https://example.com')
+// Returns: 'https://example.com'
+```
+
+---
+
+<a name="THUMBS_UP_STICKER_IDS"></a>
+## THUMBS_UP_STICKER_IDS
+
+Constants for Facebook thumbs-up sticker IDs.
+
+These are the sticker IDs sent when someone presses the thumbs-up button in Messenger. There are three variants depending on how long the sending user held down the send button.
+
+__Values__
+
+* `THUMBS_UP_STICKER_IDS.SMALL`: 369239263222822
+* `THUMBS_UP_STICKER_IDS.MEDIUM`: 369239343222814
+* `THUMBS_UP_STICKER_IDS.LARGE`: 369239383222810
+
+__Example__
+
+```typescript
+import { THUMBS_UP_STICKER_IDS } from 'meta-messenger.js'
+
+if (attachment.stickerId === THUMBS_UP_STICKER_IDS.LARGE) {
+    console.log('User held the button for a long time!')
+}
+```
+
+---
+
 # Events
 
 > **Legend:**
@@ -1636,6 +1725,8 @@ interface Mention {
     userId: number
     offset: number
     length: number
+    /** Mention type: user (person), page, group, or thread */
+    type?: 'user' | 'page' | 'group' | 'thread'
 }
 ```
 

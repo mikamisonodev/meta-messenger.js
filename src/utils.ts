@@ -364,3 +364,72 @@ export class Utils extends null {
         return str.length > 20 && str.length % 4 === 0;
     }
 }
+
+/**
+ * Facebook thumbs-up sticker IDs
+ *
+ * These are fake stickers that are sent when someone presses the thumbs-up
+ * button in Messenger. They are handled specially by the Messenger web client
+ * instead of being displayed as normal stickers. There are three variants
+ * depending on how long the sending user held down the send button.
+ */
+export const THUMBS_UP_STICKER_IDS = {
+    SMALL: 369239263222822,
+    MEDIUM: 369239343222814,
+    LARGE: 369239383222810,
+} as const;
+
+/**
+ * Check if a sticker ID is a thumbs-up sticker
+ *
+ * @param stickerId - The sticker ID to check
+ * @returns True if this is a thumbs-up sticker
+ *
+ * @example
+ * ```typescript
+ * import { isThumbsUpSticker } from 'meta-messenger.js'
+ *
+ * if (attachment.type === 'sticker' && isThumbsUpSticker(attachment.stickerId)) {
+ *     console.log('User sent a thumbs up!')
+ * }
+ * ```
+ */
+export function isThumbsUpSticker(stickerId: number | undefined): boolean {
+    if (!stickerId) return false;
+    return (
+        stickerId === THUMBS_UP_STICKER_IDS.SMALL ||
+        stickerId === THUMBS_UP_STICKER_IDS.MEDIUM ||
+        stickerId === THUMBS_UP_STICKER_IDS.LARGE
+    );
+}
+
+/**
+ * Extract actual URL from Facebook's l.php redirect URL
+ *
+ * Facebook wraps external URLs in a tracking redirect. This function extracts
+ * the original URL from the redirect.
+ *
+ * @param url - The URL to parse (may be an l.php redirect)
+ * @returns The extracted URL or the original URL if not a redirect
+ *
+ * @example
+ * ```typescript
+ * import { extractUrlFromLPHP } from 'meta-messenger.js'
+ *
+ * const actualUrl = extractUrlFromLPHP('https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com')
+ * // Returns: 'https://example.com'
+ * ```
+ */
+export function extractUrlFromLPHP(url: string): string {
+    if (!url) return url;
+    try {
+        const parsed = new URL(url);
+        if (parsed.pathname === "/l.php" || parsed.pathname.endsWith("/l.php")) {
+            const actualUrl = parsed.searchParams.get("u");
+            if (actualUrl) return actualUrl;
+        }
+    } catch {
+        // Invalid URL, return as-is
+    }
+    return url;
+}
