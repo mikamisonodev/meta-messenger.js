@@ -60,6 +60,7 @@
 
 export type { ClientEventMap } from "./client.js";
 export { Client } from "./client.js";
+export { UIDLogin } from "./login.js";
 export {
     type BaseEvent,
     type ClientEvent,

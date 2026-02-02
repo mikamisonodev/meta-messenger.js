@@ -172,6 +172,7 @@ Theo License của mautrix-meta
 - [facebook-chat-api](https://github.com/Schmavery/facebook-chat-api) - Truyền cảm hứng cho API Style
 - [whatsmeow-node](https://github.com/vinikjkkj/whatsmeow-node) - Tham khảo cách viết thư viện NodeJS với FFI.
 - [koffi](https://codeberg.org/Koromix/rygel/src/branch/master/src/koffi) - Fast and easy-to-use C FFI module for Node.js
+- [imhiendev/LoginFacebookAppKatanaAPI](https://github.com/imhiendev/LoginFacebookAppKatanaAPI) - Mã nguồn code login vào tài khoản Facebook
 
 ## Tuyên bố miễn trừ trách nhiệm
 

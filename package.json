@@ -43,7 +43,8 @@
   "homepage": "https://github.com/yumi-team/meta-messenger.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "koffi": "^2.15.1"
+    "koffi": "^2.15.1",
+    "undici": "^7.20.0"
   },
   "devDependencies": {
     "@types/node": "^25.1.0",

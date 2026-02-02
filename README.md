@@ -172,6 +172,7 @@ According to mautrix-meta License
 - [facebook-chat-api](https://github.com/Schmavery/facebook-chat-api) - Inspired the API Style
 - [whatsmeow-node](https://github.com/vinikjkkj/whatsmeow-node) - Reference for writing NodeJS library with FFI.
 - [koffi](https://codeberg.org/Koromix/rygel/src/branch/master/src/koffi) - Fast and easy-to-use C FFI module for Node.js
+- [imhiendev/LoginFacebookAppKatanaAPI](https://github.com/imhiendev/LoginFacebookAppKatanaAPI) - Source code for logging into a Facebook account
 
 ## Disclaimer
 
