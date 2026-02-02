@@ -196,6 +196,7 @@ export class UIDLogin extends null {
      * @param account - Account with UID and password
      * @returns Cookie and token upon successful authentication
      * @warn Accounts with 2FA are not supported, and the function will return an error
+     * @deprecated This login method is unstable and may be blocked by Facebook at any time.
      */
     static async login(account: Account): Promise<AuthenticatedResult> {
         const headers: Record<string, string> = {
