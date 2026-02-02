@@ -185,6 +185,7 @@ type E2EEMessage struct {
 	Attachments []*Attachment `json:"attachments,omitempty"`
 	ReplyTo     *ReplyTo      `json:"replyTo,omitempty"`
 	Mentions    []*Mention    `json:"mentions,omitempty"`
+	DebugType   string        `json:"debugType,omitempty"` // Debug: raw message type from protobuf
 }
 
 // handleEvent handles messagix events
@@ -673,6 +674,10 @@ func (c *Client) handleE2EEEvent(evt interface{}) {
 
 		// Regular message - extract full content
 		msg := c.extractE2EEMessage(e, senderID)
+		if msg == nil {
+			// Message was skipped (e.g., empty live location event)
+			return
+		}
 		c.emitEvent(EventTypeE2EEMessage, msg)
 
 	case *events.Receipt:
@@ -1022,8 +1027,12 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 	}
 
 	if e.Message == nil {
+		msg.DebugType = "nil"
 		return msg
 	}
+
+	// Set debug type from actual message type
+	msg.DebugType = fmt.Sprintf("%T", e.Message)
 
 	// Extract from ConsumerApplication
 	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
@@ -1153,8 +1162,15 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 
 		// Try Content first (link shares, etc.)
 		if content := payload.GetContent(); content != nil {
-			// ExtendedContentMessage - used for link shares
+			msg.DebugType = fmt.Sprintf("%T -> Content/%T", e.Message, content.GetContent())
+			// ExtendedContentMessage - used for link shares and location sharing
 			if extMsg := content.GetExtendedContentMessage(); extMsg != nil {
+				targetType := extMsg.GetTargetType()
+				if targetType == waArmadilloXMA.ExtendedContentMessage_MSG_LOCATION_SHARING_V2 {
+					// Todo: check for live location end event?
+					return nil
+				}
+
 				att := c.extractArmadilloLinkAttachment(extMsg)
 				if att != nil {
 					msg.Attachments = append(msg.Attachments, att)
