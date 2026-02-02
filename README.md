@@ -92,9 +92,9 @@ await client.sendVideo(threadId, video, 'video.mp4')
 await client.sendSticker(threadId, 369239263222822) // thumbs up
 ```
 
-### Save Session
+### Save E2EE State
 
-To avoid having to get new cookies each time, you should save the device data (for E2EE) to a file:
+To persist the E2EE state for later use, you should save the device data to a file:
 
 ```typescript
 import { writeFileSync, readFileSync } from 'fs'

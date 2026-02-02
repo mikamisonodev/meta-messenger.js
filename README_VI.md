@@ -92,9 +92,9 @@ await client.sendVideo(threadId, video, 'video.mp4')
 await client.sendSticker(threadId, 369239263222822) // thumbs up
 ```
 
-### Lưu session
+### Lưu E2EE State
 
-Để tránh phải lấy cookies mới mỗi lần, bạn nên lưu device data (cho E2EE) vào file:
+Để lưu trạng thái E2EE cho lần sử dụng sau, bạn nên lưu device data vào file:
 
 ```typescript
 import { writeFileSync, readFileSync } from 'fs'
