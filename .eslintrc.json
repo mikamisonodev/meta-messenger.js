@@ -20,7 +20,7 @@
             {
                 "files": ["header.txt"],
                 "templates": {
-                    "author": [".*", "Elysia and contributors"]
+                    "author": [".*", "Yumi Team and contributors"]
                 }
             }
         ],

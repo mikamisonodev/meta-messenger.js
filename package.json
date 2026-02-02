@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "test": "tsc --noEmit && npm run lint",
+    "test": "tsc --noEmit && npm run lint && npm run format",
     "build:go": "node scripts/build-go.mjs",
     "build:ts": "tsup",
     "build": "npm run build:go && npm run build:ts",
@@ -14,7 +14,8 @@
     "lint:fix": "eslint . --fix",
     "lint": "eslint .",
     "format:fix": "prettier --write --list-different .",
-    "format": "prettier --check ."
+    "format": "prettier --check .",
+    "fix": "npm run lint:fix && npm run format:fix"
   },
   "publishConfig": {
     "access": "public"
