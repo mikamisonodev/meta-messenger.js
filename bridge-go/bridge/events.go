@@ -33,22 +33,22 @@ const (
 type EventType string
 
 const (
-	EventTypeReady         EventType = "ready"
-	EventTypeReconnected   EventType = "reconnected"
-	EventTypeDisconnected  EventType = "disconnected"
-	EventTypeError         EventType = "error"
-	EventTypeMessage       EventType = "message"
-	EventTypeMessageEdit   EventType = "messageEdit"
-	EventTypeMessageUnsend EventType = "messageUnsend"
-	EventTypeReaction      EventType = "reaction"
-	EventTypeTyping        EventType = "typing"
-	EventTypePresence      EventType = "presence"
-	EventTypeReadReceipt   EventType = "readReceipt"
-	EventTypeE2EEConnected EventType = "e2eeConnected"
-	EventTypeE2EEMessage   EventType = "e2eeMessage"
-	EventTypeE2EEReaction  EventType = "e2eeReaction"
-	EventTypeE2EEReceipt   EventType = "e2eeReceipt"
-	EventDeviceDataChanged EventType = "deviceDataChanged"
+	EventTypeReady          EventType = "ready"
+	EventTypeReconnected    EventType = "reconnected"
+	EventTypeDisconnected   EventType = "disconnected"
+	EventTypeError          EventType = "error"
+	EventTypeMessage        EventType = "message"
+	EventTypeMessageEdit    EventType = "messageEdit"
+	EventTypeMessageUnsend  EventType = "messageUnsend"
+	EventTypeReaction       EventType = "reaction"
+	EventTypeTyping         EventType = "typing"
+	EventTypePresence       EventType = "presence"
+	EventTypeReadReceipt    EventType = "readReceipt"
+	EventTypeE2EEConnected  EventType = "e2eeConnected"
+	EventTypeE2EEMessage    EventType = "e2eeMessage"
+	EventTypeE2EEReaction   EventType = "e2eeReaction"
+	EventTypeE2EEReceipt    EventType = "e2eeReceipt"
+	EventDeviceDataChanged  EventType = "deviceDataChanged"
 )
 
 // Event represents a generic event

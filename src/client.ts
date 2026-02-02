@@ -740,6 +740,34 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<ClientE
     }
 
     /**
+     * Get the current cookies from the internal client state
+     *
+     * Use this to export updated cookies after they've been refreshed
+     *
+     * @returns Current cookies as key-value object
+     */
+    getCookies(): Record<string, string> {
+        if (!this.handle) throw new Error("Not connected");
+        const result = native.getCookies(this.handle);
+        return result.cookies;
+    }
+
+    /**
+     * Register for web push notifications
+     *
+     * @param endpoint - Push notification endpoint URL
+     * @param keys - Push notification keys (p256dh and auth, base64 encoded)
+     */
+    async registerPushNotifications(endpoint: string, keys: { p256dh: string; auth: string }): Promise<void> {
+        if (!this.handle) throw new Error("Not connected");
+        await native.registerPushNotifications(this.handle, {
+            endpoint,
+            p256dh: keys.p256dh,
+            auth: keys.auth,
+        });
+    }
+
+    /**
      * Download and decrypt E2EE media
      *
      * Use the mediaKey, mediaSha256, and directPath from attachment metadata
@@ -852,6 +880,14 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<ClientE
                 break;
             case "error":
                 this.emit("error", new Error(event.data.message));
+                // Code 1 = permanent error (session invalid), stop event loop
+                if (event.data.code === 1) {
+                    this.stopEventLoop();
+                    this._socketReady = false;
+                    this._e2eeConnected = false;
+                    this._fullyReadyEmitted = false;
+                    this.pendingEvents = [];
+                }
                 break;
             case "e2eeConnected":
                 this._e2eeConnected = true;

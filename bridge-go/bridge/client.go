@@ -621,6 +621,57 @@ func NewDeviceStoreMemoryOnly() (*DeviceStore, error) {
 	return ds, nil
 }
 
+// GetCookies returns the current cookies from the messagix client
+func (c *Client) GetCookies() map[string]string {
+	if c.Messagix == nil {
+		return nil
+	}
+	cks := c.Messagix.GetCookies()
+	if cks == nil {
+		return nil
+	}
+	result := make(map[string]string)
+	for k, v := range cks.GetAll() {
+		result[string(k)] = v
+	}
+	return result
+}
+
+// PushKeys holds the web push notification keys
+type PushKeys struct {
+	P256DH []byte `json:"p256dh"`
+	Auth   []byte `json:"auth"`
+}
+
+// RegisterPushNotificationsOptions holds options for push notification registration
+type RegisterPushNotificationsOptions struct {
+	Endpoint string `json:"endpoint"`
+	P256DH   string `json:"p256dh"` // base64 encoded
+	Auth     string `json:"auth"`   // base64 encoded
+}
+
+// RegisterPushNotifications registers web push notification endpoint
+func (c *Client) RegisterPushNotifications(ctx context.Context, opts *RegisterPushNotificationsOptions) error {
+	if c.Messagix == nil {
+		return fmt.Errorf("client not connected")
+	}
+
+	// Decode base64 keys
+	p256dh, err := base64.RawURLEncoding.DecodeString(opts.P256DH)
+	if err != nil {
+		return fmt.Errorf("invalid p256dh key: %w", err)
+	}
+	auth, err := base64.RawURLEncoding.DecodeString(opts.Auth)
+	if err != nil {
+		return fmt.Errorf("invalid auth key: %w", err)
+	}
+
+	return c.Messagix.Facebook.RegisterPushNotifications(ctx, opts.Endpoint, messagix.PushKeys{
+		P256DH: p256dh,
+		Auth:   auth,
+	})
+}
+
 // Helper to convert thread
 func convertThread(t *table.LSDeleteThenInsertThread) *Thread {
 	return &Thread{

@@ -80,6 +80,7 @@ export interface ErrorEvent extends BaseEvent {
     type: "error";
     data: {
         message: string;
+        /** Error code. If code = 1, this is a permanent error (session invalid, should stop event loop) */
         code?: number;
     };
 }

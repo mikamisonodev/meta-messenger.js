@@ -5,6 +5,7 @@ package main
 */
 import "C"
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -1008,6 +1009,54 @@ func MxDownloadE2EEMedia(input *C.char) *C.char {
 		"mimeType": result.MimeType,
 		"fileSize": result.FileSize,
 	})
+}
+
+//export MxGetCookies
+func MxGetCookies(input *C.char) *C.char {
+	var payload struct {
+		Handle uint64 `json:"handle"`
+	}
+	if err := json.Unmarshal([]byte(C.GoString(input)), &payload); err != nil {
+		return fail(fmt.Errorf("invalid json: %w", err))
+	}
+
+	clientsMu.RLock()
+	client := clients[handle(payload.Handle)]
+	clientsMu.RUnlock()
+	if client == nil {
+		return fail(fmt.Errorf("client not found"))
+	}
+
+	cookies := client.GetCookies()
+	return success(map[string]interface{}{
+		"cookies": cookies,
+	})
+}
+
+//export MxRegisterPushNotifications
+func MxRegisterPushNotifications(input *C.char) *C.char {
+	var payload struct {
+		Handle  uint64                                  `json:"handle"`
+		Options bridge.RegisterPushNotificationsOptions `json:"options"`
+	}
+	if err := json.Unmarshal([]byte(C.GoString(input)), &payload); err != nil {
+		return fail(fmt.Errorf("invalid json: %w", err))
+	}
+
+	clientsMu.RLock()
+	client := clients[handle(payload.Handle)]
+	clientsMu.RUnlock()
+	if client == nil {
+		return fail(fmt.Errorf("client not found"))
+	}
+
+	// Use background context since we can't pass one through FFI
+	ctx := context.Background()
+	if err := client.RegisterPushNotifications(ctx, &payload.Options); err != nil {
+		return fail(err)
+	}
+
+	return success(map[string]interface{}{})
 }
 
 func main() {}

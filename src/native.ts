@@ -84,6 +84,9 @@ const fns = {
     MxSendE2EEDocument: mk("str", "MxSendE2EEDocument", ["str"]),
     MxSendE2EESticker: mk("str", "MxSendE2EESticker", ["str"]),
     MxDownloadE2EEMedia: mk("str", "MxDownloadE2EEMedia", ["str"]),
+    // Cookie and push notification functions
+    MxGetCookies: mk("str", "MxGetCookies", ["str"]),
+    MxRegisterPushNotifications: mk("str", "MxRegisterPushNotifications", ["str"]),
 } as const;
 
 interface JsonResp<T = unknown> {
@@ -340,6 +343,18 @@ export const native = {
             fileSize: number;
         },
     ) => callAsync<{ data: string; mimeType: string; fileSize: number }>("MxDownloadE2EEMedia", { handle, options }),
+
+    // Cookie and push notification functions
+    getCookies: (handle: number) => call<{ cookies: Record<string, string> }>("MxGetCookies", { handle }),
+
+    registerPushNotifications: (
+        handle: number,
+        options: {
+            endpoint: string;
+            p256dh: string; // base64 encoded
+            auth: string; // base64 encoded
+        },
+    ) => callAsync<unknown>("MxRegisterPushNotifications", { handle, options }),
 
     unload: () => lib.unload(),
 };

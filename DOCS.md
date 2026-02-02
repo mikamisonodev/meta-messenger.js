@@ -48,6 +48,9 @@
   * [`client.sendE2EESticker()`](#sendE2EESticker)
   * [`client.downloadE2EEMedia()`](#downloadE2EEMedia)
   * [`client.getDeviceData()`](#getDeviceData)
+* [Session Management](#session-management)
+  * [`client.getCookies()`](#getCookies)
+  * [`client.registerPushNotifications()`](#registerPushNotifications)
 * [Miscellaneous](#miscellaneous)
   * [`client.unloadLibrary()`](#unloadLibrary)
 * [Utilities](#utilities)
@@ -58,18 +61,22 @@
   * [`extractUrlFromLPHP()`](#extractUrlFromLPHP)
   * [`THUMBS_UP_STICKER_IDS`](#THUMBS_UP_STICKER_IDS)
 * [Events](#events)
+  * [`ready`](#event-ready) 🔵🟢
+  * [`reconnected`](#event-reconnected) 🔵🟢
   * [`message`](#event-message) 🔵
-  * [`e2eeMessage`](#event-e2eeMessage) 🟢
   * [`messageEdit`](#event-messageEdit) 🔵🟢
   * [`messageUnsend`](#event-messageUnsend) 🔵🟢
   * [`reaction`](#event-reaction) 🔵
-  * [`e2eeReaction`](#event-e2eeReaction) 🟢
   * [`typing`](#event-typing) 🔵
   * [`readReceipt`](#event-readReceipt) 🔵
+  * [`e2eeMessage`](#event-e2eeMessage) 🟢
+  * [`e2eeReaction`](#event-e2eeReaction) 🟢
   * [`e2eeReceipt`](#event-e2eeReceipt) 🟢
   * [`e2eeConnected`](#event-e2eeConnected) 🟢
   * [`fullyReady`](#event-fullyReady) 🔵🟢
   * [`disconnected`](#event-disconnected) 🔵🟢
+  * [`error`](#event-error) 🔵🟢
+  * [`deviceDataChanged`](#event-deviceDataChanged) 🟢
 * [Types](#types)
 
 ---
@@ -1095,6 +1102,65 @@ const client = new Client(cookies, {
 
 ---
 
+# Session Management
+
+<a name="getCookies"></a>
+## client.getCookies()
+
+Get the current cookies from the internal client state. Useful for exporting refreshed cookies.
+
+__Returns__
+
+Record<string, string> - Current cookies as key-value object
+
+__Note__
+
+Meta servers may refresh session cookies during operation. Use this method to export the latest cookies for storage.
+
+__Example__
+
+```typescript
+import { writeFileSync } from 'fs'
+
+// Export current cookies (may have been refreshed)
+const cookies = client.getCookies()
+writeFileSync('cookies.json', JSON.stringify(cookies))
+```
+
+---
+
+<a name="registerPushNotifications"></a>
+## client.registerPushNotifications(endpoint, keys)
+
+Register for web push notifications. This allows receiving push notifications from Meta servers.
+
+__Parameters__
+
+* `endpoint`: string - Push notification endpoint URL
+* `keys`: object - Push notification keys
+  * `p256dh`: string - P256DH key (base64 URL-safe encoded)
+  * `auth`: string - Auth key (base64 URL-safe encoded)
+
+__Returns__
+
+Promise<void>
+
+__Note__
+
+This is an advanced feature for implementing push notifications. Requires a valid VAPID key pair and push subscription.
+
+__Example__
+
+```typescript
+// Example with web-push library setup
+await client.registerPushNotifications('https://fcm.googleapis.com/fcm/send/...', {
+    p256dh: 'base64-encoded-p256dh-key',
+    auth: 'base64-encoded-auth-key'
+})
+```
+
+---
+
 # Miscellaneous
 
 <a name="unloadLibrary"></a>
@@ -1613,7 +1679,7 @@ __Data object__
 
 > 🔵🟢 **Supports both regular and E2EE**
 
-Emitted when an error occurs.
+Emitted when an error occurs. If the error is a permanent error (session invalid, account blocked, etc.), the event loop will automatically stop.
 
 ```typescript
 client.on('error', (error) => {

@@ -48,6 +48,9 @@
   * [`client.sendE2EESticker()`](#sendE2EESticker)
   * [`client.downloadE2EEMedia()`](#downloadE2EEMedia)
   * [`client.getDeviceData()`](#getDeviceData)
+* [Quản lý Session](#quản-lý-session)
+  * [`client.getCookies()`](#getCookies)
+  * [`client.registerPushNotifications()`](#registerPushNotifications)
 * [Khác](#khác)
   * [`client.unloadLibrary()`](#unloadLibrary)
 * [Utilities](#utilities)
@@ -58,18 +61,22 @@
   * [`extractUrlFromLPHP()`](#extractUrlFromLPHP)
   * [`THUMBS_UP_STICKER_IDS`](#THUMBS_UP_STICKER_IDS)
 * [Events](#events)
+  * [`ready`](#event-ready) 🔵🟢
+  * [`reconnected`](#event-reconnected) 🔵🟢
   * [`message`](#event-message) 🔵
-  * [`e2eeMessage`](#event-e2eeMessage) 🟢
   * [`messageEdit`](#event-messageEdit) 🔵🟢
   * [`messageUnsend`](#event-messageUnsend) 🔵🟢
   * [`reaction`](#event-reaction) 🔵
-  * [`e2eeReaction`](#event-e2eeReaction) 🟢
   * [`typing`](#event-typing) 🔵
   * [`readReceipt`](#event-readReceipt) 🔵
+  * [`e2eeMessage`](#event-e2eeMessage) 🟢
+  * [`e2eeReaction`](#event-e2eeReaction) 🟢
   * [`e2eeReceipt`](#event-e2eeReceipt) 🟢
   * [`e2eeConnected`](#event-e2eeConnected) 🟢
   * [`fullyReady`](#event-fullyReady) 🔵🟢
   * [`disconnected`](#event-disconnected) 🔵🟢
+  * [`error`](#event-error) 🔵🟢
+  * [`deviceDataChanged`](#event-deviceDataChanged) 🟢
 * [Types](#types)
 
 ---
@@ -1095,6 +1102,65 @@ const client = new Client(cookies, {
 
 ---
 
+# Quản lý Session
+
+<a name="getCookies"></a>
+## client.getCookies()
+
+Lấy cookies hiện tại từ trạng thái nội bộ của client. Hữu ích để xuất cookies đã được làm mới.
+
+__Trả về__
+
+Record<string, string> - Cookies hiện tại dưới dạng object key-value
+
+__Lưu ý__
+
+Server Meta có thể làm mới session cookies trong quá trình hoạt động. Sử dụng method này để xuất cookies mới nhất để lưu trữ.
+
+__Ví dụ__
+
+```typescript
+import { writeFileSync } from 'fs'
+
+// Xuất cookies hiện tại (có thể đã được làm mới)
+const cookies = client.getCookies()
+writeFileSync('cookies.json', JSON.stringify(cookies))
+```
+
+---
+
+<a name="registerPushNotifications"></a>
+## client.registerPushNotifications(endpoint, keys)
+
+Đăng ký nhận web push notifications. Cho phép nhận push notifications từ server Meta.
+
+__Tham số__
+
+* `endpoint`: string - URL endpoint push notification
+* `keys`: object - Push notification keys
+  * `p256dh`: string - P256DH key (base64 URL-safe encoded)
+  * `auth`: string - Auth key (base64 URL-safe encoded)
+
+__Trả về__
+
+Promise<void>
+
+__Lưu ý__
+
+Đây là tính năng nâng cao để triển khai push notifications. Yêu cầu VAPID key pair và push subscription hợp lệ.
+
+__Ví dụ__
+
+```typescript
+// Ví dụ sử dụng với web-push library
+await client.registerPushNotifications('https://fcm.googleapis.com/fcm/send/...', {
+    p256dh: 'base64-encoded-p256dh-key',
+    auth: 'base64-encoded-auth-key'
+})
+```
+
+---
+
 # Khác
 
 <a name="unloadLibrary"></a>
@@ -1613,7 +1679,7 @@ __Data object__
 
 > 🔵🟢 **Hỗ trợ cả thường và E2EE**
 
-Phát ra khi có lỗi xảy ra.
+Phát ra khi có lỗi xảy ra. Nếu là lỗi vĩnh viễn (session hết hạn, tài khoản bị chặn, v.v.), event loop sẽ tự động dừng.
 
 ```typescript
 client.on('error', (error) => {
