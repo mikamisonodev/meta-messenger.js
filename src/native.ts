@@ -122,6 +122,7 @@ export const native = {
         platform?: string;
         devicePath?: string;
         deviceData?: string;
+        e2eeMemoryOnly?: boolean;
         logLevel?: string;
     }) => call<{ handle: number }>("MxNewClient", cfg),
 

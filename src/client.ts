@@ -116,6 +116,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<ClientE
             logLevel: "none",
             enableE2EE: true,
             autoReconnect: true,
+            e2eeMemoryOnly: true,
             ...options,
         };
     }
@@ -188,6 +189,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<ClientE
             platform: this.options.platform,
             devicePath: this.options.devicePath,
             deviceData: this.options.deviceData,
+            e2eeMemoryOnly: this.options.e2eeMemoryOnly,
             logLevel: this.options.logLevel,
         });
         this.handle = handle;

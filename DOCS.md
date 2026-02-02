@@ -118,6 +118,7 @@ __Parameters__
   * `enableE2EE`: Boolean - Enable end-to-end encryption (for Messenger) (default: `true`)
   * `devicePath`: String - Path to file for storing device data (for E2EE)
   * `deviceData`: String - Saved device data (JSON string) (takes priority)
+  * `e2eeMemoryOnly`: Boolean - If true, E2EE state is stored in memory only (no file, no events). State will be lost on disconnect. (default: `true`)
   * `logLevel`: `'none'` | `'error'` | `'warn'` | `'info'` | `'debug'` | `'trace'` (default: `'none'`)
   * `autoReconnect`: Boolean - Auto reconnect on disconnect (default: `true`)
 

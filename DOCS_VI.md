@@ -118,6 +118,7 @@ __Tham số__
   * `enableE2EE`: Boolean - Bật mã hóa đầu cuối (Cho Messenger) (mặc định: `true`)
   * `devicePath`: String - Đường dẫn file lưu device data (cho E2EE)
   * `deviceData`: String - Device data đã lưu (JSON string) (Được ưu tiên sử dụng)
+  * `e2eeMemoryOnly`: Boolean - Nếu true, E2EE state chỉ lưu trong RAM (không ghi file, không emit event). State sẽ mất khi disconnect. (mặc định: `true`)
   * `logLevel`: `'none'` | `'error'` | `'warn'` | `'info'` | `'debug'` | `'trace'` (mặc định: `'none'`)
   * `autoReconnect`: Boolean - Tự động reconnect khi mất kết nối (mặc định: `true`)
 

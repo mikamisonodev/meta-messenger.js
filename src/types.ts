@@ -407,9 +407,11 @@ export interface ClientOptions {
     devicePath?: string;
     /** E2EE device data as JSON string (takes priority over devicePath) */
     deviceData?: string;
+    /** If true, E2EE state is stored in memory only (no file, no events). State will be lost on disconnect. Default: true */
+    e2eeMemoryOnly?: boolean;
     /** Log level */
     logLevel?: LogLevel;
-    /** Enable E2EE */
+    /** Enable E2EE. Default: true */
     enableE2EE?: boolean;
     /** Auto reconnect on disconnect */
     autoReconnect?: boolean;

@@ -45,11 +45,12 @@ type Client struct {
 
 // ClientConfig for creating a new client
 type ClientConfig struct {
-	Cookies    map[string]string `json:"cookies"`
-	Platform   string            `json:"platform"` // "facebook", "messenger", "instagram"
-	DevicePath string            `json:"devicePath"`
-	DeviceData string            `json:"deviceData,omitempty"` // JSON string of device data (optional, takes priority over DevicePath)
-	LogLevel   string            `json:"logLevel"`
+	Cookies        map[string]string `json:"cookies"`
+	Platform       string            `json:"platform"` // "facebook", "messenger", "instagram"
+	DevicePath     string            `json:"devicePath"`
+	DeviceData     string            `json:"deviceData,omitempty"`     // JSON string of device data (optional, takes priority over DevicePath)
+	E2EEMemoryOnly bool              `json:"e2eeMemoryOnly,omitempty"` // If true, E2EE state is stored in memory only (no file, no events)
+	LogLevel       string            `json:"logLevel"`
 }
 
 // NewClient creates a new messagix client
@@ -100,7 +101,10 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 	// Create device store
 	var deviceStore *DeviceStore
 	var err error
-	if cfg.DeviceData != "" {
+	if cfg.E2EEMemoryOnly {
+		// Memory only mode - no persistence
+		deviceStore, err = NewDeviceStoreMemoryOnly()
+	} else if cfg.DeviceData != "" {
 		// Use provided device data (no file I/O)
 		deviceStore, err = NewDeviceStoreFromData(cfg.DeviceData)
 	} else {
@@ -540,6 +544,56 @@ func NewDeviceStoreFromData(dataStr string) (*DeviceStore, error) {
 		decoded, _ := base64.StdEncoding.DecodeString(v)
 		ds.senderKeys[k] = decoded
 	}
+
+	// Set store interfaces
+	ds.Device.Identities = ds
+	ds.Device.Sessions = ds
+	ds.Device.PreKeys = ds
+	ds.Device.SenderKeys = ds
+	ds.Device.Container = ds
+	ds.Device.AppStateKeys = ds
+	ds.Device.AppState = ds
+	ds.Device.Contacts = ds
+	ds.Device.ChatSettings = ds
+	ds.Device.MsgSecrets = ds
+	ds.Device.PrivacyTokens = ds
+	ds.Device.LIDs = ds
+	ds.Device.EventBuffer = ds
+	ds.Device.Initialized = true
+
+	if ds.Device.Account == nil {
+		ds.Device.Account = &waAdv.ADVSignedDeviceIdentity{
+			Details: make([]byte, 0), AccountSignatureKey: make([]byte, 32),
+			AccountSignature: make([]byte, 64), DeviceSignature: make([]byte, 64),
+		}
+	}
+
+	return ds, nil
+}
+
+// NewDeviceStoreMemoryOnly creates a new device store that only lives in memory
+// No file saving, no events emitted - state is lost when client disconnects
+func NewDeviceStoreMemoryOnly() (*DeviceStore, error) {
+	ds := &DeviceStore{
+		path:         "", // Empty path means no file saving
+		identities:   make(map[string][32]byte),
+		sessions:     make(map[string][]byte),
+		preKeys:      make(map[uint32]*keys.PreKey),
+		senderKeys:   make(map[string][]byte),
+		nextPreKeyID: 1,
+		// onDataChanged is nil - no callback
+	}
+
+	// Create new device
+	ds.Device = &store.Device{
+		NoiseKey:       keys.NewKeyPair(),
+		IdentityKey:    keys.NewKeyPair(),
+		RegistrationID: rand.Uint32()%16380 + 1,
+		AdvSecretKey:   make([]byte, 32),
+	}
+	rand.Read(ds.Device.AdvSecretKey)
+	ds.Device.SignedPreKey = ds.Device.IdentityKey.CreateSignedPreKey(1)
+	ds.Device.FacebookUUID = uuid.New()
 
 	// Set store interfaces
 	ds.Device.Identities = ds
