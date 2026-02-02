@@ -39,6 +39,7 @@ jobs:
               with:
                   name: messagix-linux-x64-gnu
                   path: messagix-linux-x64-gnu.so
+                  retention-days: 1
 
     linux-musl-x64:
         runs-on: ubuntu-latest
@@ -70,6 +71,7 @@ jobs:
               with:
                   name: messagix-linux-x64-musl
                   path: messagix-linux-x64-musl.so
+                  retention-days: 1
 
     linux-gnu-arm64:
         runs-on: ubuntu-24.04-arm
@@ -99,6 +101,7 @@ jobs:
               with:
                   name: messagix-linux-arm64-gnu
                   path: messagix-linux-arm64-gnu.so
+                  retention-days: 1
 
     macos-x64:
         runs-on: macos-15-intel
@@ -126,6 +129,7 @@ jobs:
               with:
                   name: messagix-darwin-x64
                   path: messagix-darwin-x64.dylib
+                  retention-days: 1
 
     macos-arm64:
         runs-on: macos-latest
@@ -153,6 +157,7 @@ jobs:
               with:
                   name: messagix-darwin-arm64
                   path: messagix-darwin-arm64.dylib
+                  retention-days: 1
 
     windows-x64:
         runs-on: windows-latest
@@ -191,6 +196,7 @@ jobs:
               with:
                   name: messagix-win32-x64
                   path: messagix-win32-x64.dll
+                  retention-days: 1
 
     # Create GitHub Release with all assets
     create-release:
