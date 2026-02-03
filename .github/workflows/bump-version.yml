@@ -11,6 +11,7 @@ on:
 jobs:
   bump-version:
     runs-on: ubuntu-latest
+    environment: production_release
     env:
       MESSAGIX_SKIP_POSTINSTALL: true
     permissions:
