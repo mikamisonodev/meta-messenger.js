@@ -3,6 +3,9 @@
 > [!TIP]
 > Thư viện được viết theo style Schmavery/facebook-chat-api (Không sử dụng mã nguồn) để quen thuộc và dễ dùng hơn (và không dùng callback).
 
+> [!IMPORTANT]
+> **BigInt cho số lớn**: Thư viện sử dụng `BigInt` của JavaScript cho các giá trị số lớn như `threadId`, `userId`, `senderId`, v.v. Điều này ngăn chặn tràn số nguyên vì Facebook ID có thể vượt quá `Number.MAX_SAFE_INTEGER` (2^53-1) của JavaScript. Khi so sánh hoặc sử dụng các giá trị này, hãy dùng literal `BigInt` (ví dụ: `123n`) hoặc chuyển đổi `BigInt()`.
+
 * [Bảo mật cookies](#bảo-mật-cookies)
 * [Client](#client)
   * [`new Client(cookies, options)`](#constructor)
@@ -159,7 +162,7 @@ __Trả về__
 Promise<{ user: User, initialData: InitialData }>
 
 * `user`: Thông tin người dùng đã đăng nhập
-  * `id`: number - Facebook ID
+  * `id`: bigint - Facebook ID
   * `name`: string - Tên hiển thị
   * `username`: string - Username
 * `initialData`: Dữ liệu ban đầu
@@ -220,7 +223,7 @@ __Type:__ `User | null`
 
 Facebook ID của người dùng hiện tại. `null` nếu chưa kết nối.
 
-__Type:__ `number | null`
+__Type:__ `bigint | null`
 
 ---
 
@@ -260,14 +263,14 @@ Gửi tin nhắn văn bản đến một thread.
 
 __Tham số__
 
-* `threadId`: number - ID của thread.
+* `threadId`: bigint - ID của thread.
 * `options`: string | SendMessageOptions
   * Nếu là string: Gửi tin nhắn văn bản đơn giản
   * Nếu là object:
     * `text`: string - Nội dung tin nhắn
     * `replyToId?`: string - ID tin nhắn để reply
     * `mentions?`: Mention[] - Danh sách mention
-      * `userId`: number - ID user được mention
+      * `userId`: bigint - ID user được mention
       * `offset`: number - Vị trí bắt đầu trong text
       * `length`: number - Độ dài của mention
 
@@ -275,7 +278,7 @@ __Trả về__
 
 Promise<SendMessageResult>
 * `messageId`: string - ID tin nhắn đã gửi
-* `timestampMs`: number - Timestamp (milliseconds)
+* `timestampMs`: bigint - Timestamp (milliseconds)
 
 __Ví dụ__
 
@@ -293,7 +296,7 @@ await client.sendMessage(threadId, {
 await client.sendMessage(threadId, {
     text: 'Chào @bạn!',
     mentions: [{
-        userId: 100000000000001,
+        userId: 100000000000001n,
         offset: 5,
         length: 4
     }]
@@ -309,7 +312,7 @@ Gửi hoặc xóa reaction cho một tin nhắn.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `messageId`: string - ID tin nhắn cần react
 * `emoji?`: string - Emoji reaction (bỏ qua để xóa reaction)
 
@@ -367,7 +370,7 @@ Gửi trạng thái đang nhập.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `isTyping?`: boolean - `true` để bắt đầu, `false` để dừng (mặc định: `true`)
 * `isGroup?`: boolean - `true` nếu là group chat (mặc định: `false`)
 
@@ -392,7 +395,7 @@ setTimeout(async () => {
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `watermarkTs?`: number - Timestamp watermark (mặc định: hiện tại)
 
 __Ví dụ__
@@ -412,7 +415,7 @@ Gửi ảnh.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu ảnh
 * `filename`: string - Tên file
 * `caption?`: string - Caption (tùy chọn)
@@ -439,7 +442,7 @@ Gửi video.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu video
 * `filename`: string - Tên file
 * `caption?`: string - Caption (tùy chọn)
@@ -464,7 +467,7 @@ Gửi tin nhắn thoại.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu audio
 * `filename`: string - Tên file
 
@@ -488,7 +491,7 @@ Gửi file bất kỳ.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu file
 * `filename`: string - Tên file
 * `mimeType`: string - MIME type (ví dụ: 'application/pdf')
@@ -514,8 +517,8 @@ Gửi sticker.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
-* `stickerId`: number - ID của sticker
+* `threadId`: bigint - ID của thread
+* `stickerId`: bigint - ID của sticker
 
 __Trả về__
 
@@ -525,7 +528,7 @@ __Ví dụ__
 
 ```typescript
 // Gửi sticker thumbs up
-await client.sendSticker(threadId, 369239263222822)
+await client.sendSticker(threadId, 369239263222822n)
 ```
 
 ---
@@ -537,7 +540,7 @@ Upload media và lấy ID để sử dụng sau.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu file
 * `filename`: string - Tên file
 * `mimeType`: string - MIME type
@@ -545,7 +548,7 @@ __Tham số__
 __Trả về__
 
 Promise<UploadMediaResult>
-* `fbId`: number - Facebook ID của media
+* `fbId`: bigint - Facebook ID của media
 * `filename`: string - Tên file
 
 __Ví dụ__
@@ -567,17 +570,17 @@ Tạo thread 1:1 với một user.
 
 __Tham số__
 
-* `userId`: number - ID của user
+* `userId`: bigint - ID của user
 
 __Trả về__
 
 Promise<CreateThreadResult>
-* `threadId`: number - ID của thread mới
+* `threadId`: bigint - ID của thread mới
 
 __Ví dụ__
 
 ```typescript
-const { threadId } = await client.createThread(100000000000001)
+const { threadId } = await client.createThread(100000000000001n)
 await client.sendMessage(threadId, 'Xin chào!')
 ```
 
@@ -590,7 +593,7 @@ await client.sendMessage(threadId, 'Xin chào!')
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `newName`: string - Tên mới
 
 __Ví dụ__
@@ -608,7 +611,7 @@ await client.renameThread(threadId, 'Nhóm bạn thân')
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `data`: Buffer | string - Dữ liệu ảnh (Buffer hoặc base64 string)
 * `mimeType?`: string - MIME type (mặc định: 'image/jpeg')
 
@@ -632,7 +635,7 @@ Tắt thông báo của thread.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 * `seconds?`: number - Thời gian tắt (giây)
   * `-1`: Tắt vĩnh viễn (mặc định)
   * `0`: Bật lại thông báo
@@ -657,7 +660,7 @@ Bật lại thông báo của thread.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 
 __Ví dụ__
 
@@ -674,7 +677,7 @@ Xóa thread.
 
 __Tham số__
 
-* `threadId`: number - ID của thread
+* `threadId`: bigint - ID của thread
 
 __Cảnh báo__
 
@@ -697,12 +700,12 @@ Lấy thông tin chi tiết của một user.
 
 __Tham số__
 
-* `userId`: number - ID của user
+* `userId`: bigint - ID của user
 
 __Trả về__
 
 Promise<UserInfo>
-* `id`: number - Facebook ID
+* `id`: bigint - Facebook ID
 * `name`: string - Tên đầy đủ
 * `firstName?`: string - Tên
 * `username?`: string - Username
@@ -715,7 +718,7 @@ Promise<UserInfo>
 __Ví dụ__
 
 ```typescript
-const user = await client.getUserInfo(100000000000001)
+const user = await client.getUserInfo(100000000000001n)
 console.log(`${user.name} (@${user.username})`)
 ```
 
@@ -733,7 +736,7 @@ __Tham số__
 __Trả về__
 
 Promise<SearchUserResult[]>
-* `id`: number - Facebook ID
+* `id`: bigint - Facebook ID
 * `name`: string - Tên
 * `username`: string - Username
 
@@ -1027,14 +1030,14 @@ __Tham số__
   * `mediaEncSha256?`: string - SHA256 của file đã mã hóa, mã hóa Base64 (khuyến nghị để xác minh)
   * `mediaType`: string - Loại media: `'image'`, `'video'`, `'audio'`, `'document'`, `'sticker'`
   * `mimeType`: string - MIME type (ví dụ: 'image/jpeg')
-  * `fileSize`: number - Kích thước file (bytes)
+  * `fileSize`: bigint - Kích thước file (bytes)
 
 __Trả về__
 
-Promise<{ data: Buffer; mimeType: string; fileSize: number }>
+Promise<{ data: Buffer; mimeType: string; fileSize: bigint }>
 * `data`: Buffer - Dữ liệu media đã giải mã
 * `mimeType`: string - MIME type
-* `fileSize`: number - Kích thước file
+* `fileSize`: bigint - Kích thước file
 
 __Ví dụ__
 
@@ -1431,10 +1434,10 @@ client.on('message', (message: Message) => {
 __Message object__
 
 * `id`: string - Message ID
-* `threadId`: number - Thread ID
-* `senderId`: number - Sender ID
+* `threadId`: bigint - Thread ID
+* `senderId`: bigint - Sender ID
 * `text`: string - Nội dung
-* `timestampMs`: number - Timestamp
+* `timestampMs`: bigint - Timestamp
 * `attachments?`: Attachment[] - Attachments
 * `replyTo?`: ReplyTo - Reply info
 * `mentions?`: Mention[] - Mentions
@@ -1459,8 +1462,8 @@ __Data object__
 
 * `messageId`: string - ID tin nhắn
 * `newText`: string - Nội dung mới
-* `editCount?`: number - Số lần chỉnh sửa
-* `timestampMs`: number - Thời gian chỉnh sửa
+* `editCount?`: bigint - Số lần chỉnh sửa
+* `timestampMs`: bigint - Thời gian chỉnh sửa
 
 ---
 
@@ -1480,7 +1483,7 @@ client.on('messageUnsend', (data) => {
 __Data object__
 
 * `messageId`: string - ID tin nhắn
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 
 ---
 
@@ -1500,8 +1503,8 @@ client.on('reaction', (data) => {
 __Data object__
 
 * `messageId`: string - ID tin nhắn
-* `threadId`: number - Thread ID
-* `actorId`: number - ID người reaction
+* `threadId`: bigint - Thread ID
+* `actorId`: bigint - ID người reaction
 * `reaction`: string - Emoji (rỗng = bỏ reaction)
 
 ---
@@ -1521,8 +1524,8 @@ client.on('typing', (data) => {
 
 __Data object__
 
-* `threadId`: number - Thread ID
-* `senderId`: number - ID người nhập
+* `threadId`: bigint - Thread ID
+* `senderId`: bigint - ID người nhập
 * `isTyping`: boolean - Đang nhập hay dừng
 
 ---
@@ -1542,10 +1545,10 @@ client.on('readReceipt', (data) => {
 
 __Data object__
 
-* `threadId`: number - Thread ID
-* `readerId`: number - ID người đọc
-* `readWatermarkTimestampMs`: number - Timestamp watermark đã đọc
-* `timestampMs?`: number - Thời gian đọc
+* `threadId`: bigint - Thread ID
+* `readerId`: bigint - ID người đọc
+* `readWatermarkTimestampMs`: bigint - Timestamp watermark đã đọc
+* `timestampMs?`: bigint - Thời gian đọc
 
 ---
 
@@ -1565,12 +1568,12 @@ client.on('e2eeMessage', (message: E2EEMessage) => {
 __E2EEMessage object__
 
 * `id`: string - Message ID
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `chatJid`: string - Chat JID
 * `senderJid`: string - Sender JID
-* `senderId`: number - Sender ID
+* `senderId`: bigint - Sender ID
 * `text`: string - Nội dung
-* `timestampMs`: number - Timestamp
+* `timestampMs`: bigint - Timestamp
 * `attachments?`: Attachment[]
 * `replyTo?`: ReplyTo
 * `mentions?`: Mention[]
@@ -1595,7 +1598,7 @@ __Data object__
 * `messageId`: string - ID tin nhắn
 * `chatJid`: string - Chat JID
 * `senderJid`: string - JID người reaction
-* `senderId`: number - ID người reaction
+* `senderId`: bigint - ID người reaction
 * `reaction`: string - Emoji (rỗng = bỏ reaction)
 
 ---
@@ -1776,10 +1779,10 @@ Interface cơ sở dùng chung cho tin nhắn thường và E2EE.
 ```typescript
 interface BaseMessage {
     id: string              // ID tin nhắn
-    threadId: number        // Thread ID (Facebook numeric ID)
-    senderId: number        // Facebook ID của người gửi
+    threadId: bigint        // Thread ID (Facebook numeric ID)
+    senderId: bigint        // Facebook ID của người gửi
     text: string            // Nội dung văn bản
-    timestampMs: number     // Timestamp tính bằng milliseconds
+    timestampMs: bigint     // Timestamp tính bằng milliseconds
     attachments?: Attachment[]
     replyTo?: ReplyTo
     mentions?: Mention[]
@@ -1815,11 +1818,11 @@ interface Attachment {
     url?: string
     fileName?: string
     mimeType?: string
-    fileSize?: number
+    fileSize?: bigint
     width?: number
     height?: number
     duration?: number
-    stickerId?: number
+    stickerId?: bigint
     previewUrl?: string
     // Dành cho link attachments
     description?: string    // Mô tả/subtitle của link
@@ -1837,7 +1840,7 @@ interface Attachment {
 ```typescript
 interface ReplyTo {
     messageId: string
-    senderId?: number
+    senderId?: bigint
     text?: string
 }
 ```
@@ -1846,7 +1849,7 @@ interface ReplyTo {
 
 ```typescript
 interface Mention {
-    userId: number
+    userId: bigint
     offset: number
     length: number
     /** Loại mention: user (người dùng), page, group, hoặc thread */
@@ -1858,12 +1861,12 @@ interface Mention {
 
 ```typescript
 interface Thread {
-    id: number
+    id: bigint
     type: number
     name: string
-    lastActivityTimestampMs: number
+    lastActivityTimestampMs: bigint
     isGroup?: boolean
-    participants?: number[]
+    participants?: bigint[]
 }
 ```
 
@@ -1871,7 +1874,7 @@ interface Thread {
 
 ```typescript
 interface User {
-    id: number
+    id: bigint
     name: string
     username: string
 }
@@ -1881,7 +1884,7 @@ interface User {
 
 ```typescript
 interface UserInfo {
-    id: number
+    id: bigint
     name: string
     firstName?: string
     username?: string

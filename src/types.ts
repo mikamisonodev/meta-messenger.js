@@ -101,10 +101,10 @@ export interface MessageEditEvent extends BaseEvent {
     type: "messageEdit";
     data: {
         messageId: string;
-        threadId: number;
+        threadId: bigint;
         newText: string;
-        editCount?: number;
-        timestampMs?: number;
+        editCount?: bigint;
+        timestampMs?: bigint;
     };
 }
 
@@ -115,7 +115,7 @@ export interface MessageUnsendEvent extends BaseEvent {
     type: "messageUnsend";
     data: {
         messageId: string;
-        threadId: number;
+        threadId: bigint;
     };
 }
 
@@ -126,10 +126,10 @@ export interface ReactionEvent extends BaseEvent {
     type: "reaction";
     data: {
         messageId: string;
-        threadId: number;
-        actorId: number;
+        threadId: bigint;
+        actorId: bigint;
         reaction: string;
-        timestampMs: number;
+        timestampMs: bigint;
     };
 }
 
@@ -139,8 +139,8 @@ export interface ReactionEvent extends BaseEvent {
 export interface TypingEvent extends BaseEvent {
     type: "typing";
     data: {
-        threadId: number;
-        senderId: number;
+        threadId: bigint;
+        senderId: bigint;
         isTyping: boolean;
     };
 }
@@ -151,10 +151,10 @@ export interface TypingEvent extends BaseEvent {
 export interface ReadReceiptEvent extends BaseEvent {
     type: "readReceipt";
     data: {
-        threadId: number;
-        readerId: number;
-        readWatermarkTimestampMs: number;
-        timestampMs?: number;
+        threadId: bigint;
+        readerId: bigint;
+        readWatermarkTimestampMs: bigint;
+        timestampMs?: bigint;
     };
 }
 
@@ -262,7 +262,7 @@ export type ClientEvent =
  * User information
  */
 export interface User {
-    id: number;
+    id: bigint;
     name: string;
     username: string;
 }
@@ -271,10 +271,10 @@ export interface User {
  * Thread/conversation
  */
 export interface Thread {
-    id: number;
+    id: bigint;
     type: ThreadType;
     name: string;
-    lastActivityTimestampMs: number;
+    lastActivityTimestampMs: bigint;
     snippet: string;
 }
 
@@ -308,7 +308,7 @@ export interface Attachment {
     /** MIME type (e.g., 'image/jpeg') */
     mimeType?: string;
     /** File size in bytes */
-    fileSize?: number;
+    fileSize?: bigint;
     /** Image/video width in pixels */
     width?: number;
     /** Image/video height in pixels */
@@ -316,7 +316,7 @@ export interface Attachment {
     /** Duration in seconds (for audio/video) */
     duration?: number;
     /** Sticker ID (for stickers) */
-    stickerId?: number;
+    stickerId?: bigint;
     /** Location latitude */
     latitude?: number;
     /** Location longitude */
@@ -341,7 +341,7 @@ export interface Attachment {
  */
 export interface ReplyTo {
     messageId: string;
-    senderId?: number;
+    senderId?: bigint;
     text?: string;
 }
 
@@ -349,7 +349,7 @@ export interface ReplyTo {
  * Mention in message
  */
 export interface Mention {
-    userId: number;
+    userId: bigint;
     offset: number;
     length: number;
     /** Mention type: user (person), page, group, or thread */
@@ -363,13 +363,13 @@ export interface BaseMessage {
     /** Message ID */
     id: string;
     /** Thread ID (Facebook numeric ID) */
-    threadId: number;
+    threadId: bigint;
     /** Sender's Facebook ID */
-    senderId: number;
+    senderId: bigint;
     /** Message text content */
     text: string;
     /** Timestamp in milliseconds */
-    timestampMs: number;
+    timestampMs: bigint;
     /** Media attachments */
     attachments?: Attachment[];
     /** Reply info if this is a reply */
@@ -404,10 +404,10 @@ export interface E2EEMessage extends BaseMessage {
  * Read receipt event data
  */
 export interface ReadReceiptData {
-    threadId: number;
-    readerId: number;
-    readWatermarkTimestampMs: number;
-    timestampMs?: number;
+    threadId: bigint;
+    readerId: bigint;
+    readWatermarkTimestampMs: bigint;
+    timestampMs?: bigint;
 }
 
 /**
@@ -469,7 +469,7 @@ export interface SendMessageOptions {
     replyToId?: string;
     /** User IDs to mention */
     mentions?: Array<{
-        userId: number;
+        userId: bigint;
         offset: number;
         length: number;
     }>;
@@ -480,14 +480,14 @@ export interface SendMessageOptions {
  */
 export interface SendMessageResult {
     messageId: string;
-    timestampMs: number;
+    timestampMs: bigint;
 }
 
 /**
  * Upload media result
  */
 export interface UploadMediaResult {
-    fbId: number;
+    fbId: bigint;
     filename: string;
 }
 
@@ -495,7 +495,7 @@ export interface UploadMediaResult {
  * Search user result
  */
 export interface SearchUserResult {
-    id: number;
+    id: bigint;
     name: string;
     username: string;
 }
@@ -504,14 +504,14 @@ export interface SearchUserResult {
  * Create thread result (1:1 chat)
  */
 export interface CreateThreadResult {
-    threadId: number;
+    threadId: bigint;
 }
 
 /**
  * User information
  */
 export interface UserInfo {
-    id: number;
+    id: bigint;
     name: string;
     firstName?: string;
     username?: string;

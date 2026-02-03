@@ -52,14 +52,14 @@ export interface ClientEventMap {
     disconnected: [{ isE2EE?: boolean }];
     error: [Error];
     message: [Message];
-    messageEdit: [{ messageId: string; threadId: number; newText: string; editCount?: number; timestampMs?: number }];
-    messageUnsend: [{ messageId: string; threadId: number }];
-    reaction: [{ messageId: string; threadId: number; actorId: number; reaction: string; timestampMs?: number }];
-    typing: [{ threadId: number; senderId: number; isTyping: boolean }];
-    readReceipt: [{ threadId: number; readerId: number; readWatermarkTimestampMs: number; timestampMs?: number }];
+    messageEdit: [{ messageId: string; threadId: bigint; newText: string; editCount?: bigint; timestampMs?: bigint }];
+    messageUnsend: [{ messageId: string; threadId: bigint }];
+    reaction: [{ messageId: string; threadId: bigint; actorId: bigint; reaction: string; timestampMs?: bigint }];
+    typing: [{ threadId: bigint; senderId: bigint; isTyping: boolean }];
+    readReceipt: [{ threadId: bigint; readerId: bigint; readWatermarkTimestampMs: bigint; timestampMs?: bigint }];
     e2eeConnected: [];
     e2eeMessage: [E2EEMessage];
-    e2eeReaction: [{ messageId: string; chatJid: string; senderJid: string; senderId?: number; reaction: string }];
+    e2eeReaction: [{ messageId: string; chatJid: string; senderJid: string; senderId?: bigint; reaction: string }];
     e2eeReceipt: [{ type: string; chat: string; sender: string; messageIds: string[] }];
     deviceDataChanged: [{ deviceData: string }];
     raw: [{ from: "lightspeed" | "whatsmeow" | "internal"; type: string; data: unknown }];
@@ -137,8 +137,8 @@ export class Client<
     /**
      * Get the current user's Facebook ID
      */
-    get currentUserId(): If<Ready, number> {
-        return (this._user?.id ?? null) as If<Ready, number>;
+    get currentUserId(): If<Ready, bigint> {
+        return (this._user?.id ?? null) as If<Ready, bigint>;
     }
 
     /**
@@ -249,7 +249,7 @@ export class Client<
      * @param options - Message options (text, reply, mentions)
      * @returns Send result with message ID
      */
-    async sendMessage(threadId: number, options: SendMessageOptions | string): Promise<SendMessageResult> {
+    async sendMessage(threadId: bigint, options: SendMessageOptions | string): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
 
         const opts = typeof options === "string" ? { text: options } : options;
@@ -271,7 +271,7 @@ export class Client<
      * @param messageId - Message ID to react to
      * @param emoji - Reaction emoji (to remove, simply omit this parameter)
      */
-    async sendReaction(threadId: number, messageId: string, emoji?: string): Promise<void> {
+    async sendReaction(threadId: bigint, messageId: string, emoji?: string): Promise<void> {
         if (!this.handle) throw new Error("Not connected");
         await native.sendReaction(this.handle, threadId, messageId, emoji || "");
     }
@@ -304,7 +304,7 @@ export class Client<
      * @param isTyping - Whether typing or not
      * @param isGroup - Whether it's a group chat
      */
-    async sendTypingIndicator(threadId: number, isTyping: boolean = true, isGroup: boolean = false): Promise<void> {
+    async sendTypingIndicator(threadId: bigint, isTyping: boolean = true, isGroup: boolean = false): Promise<void> {
         if (!this.handle) throw new Error("Not connected");
         await native.sendTyping(this.handle, threadId, isTyping, isGroup, isGroup ? 2 : 1);
     }
@@ -315,7 +315,7 @@ export class Client<
      * @param threadId - Thread ID
      * @param watermarkTs - Timestamp to mark read up to (optional)
      */
-    async markAsRead(threadId: number, watermarkTs?: number): Promise<void> {
+    async markAsRead(threadId: bigint, watermarkTs?: number): Promise<void> {
         if (!this.handle) throw new Error("Not connected");
         await native.markRead(this.handle, threadId, watermarkTs);
     }
@@ -331,7 +331,7 @@ export class Client<
      * @returns Upload result with Facebook ID
      */
     async uploadMedia(
-        threadId: number,
+        threadId: bigint,
         data: Buffer,
         filename: string,
         mimeType: string,
@@ -355,7 +355,7 @@ export class Client<
      * @param filename - Filename
      * @param caption - Optional caption
      */
-    async sendImage(threadId: number, data: Buffer, filename: string, caption?: string): Promise<SendMessageResult> {
+    async sendImage(threadId: bigint, data: Buffer, filename: string, caption?: string): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.sendImage(this.handle, {
             threadId,
@@ -373,7 +373,7 @@ export class Client<
      * @param filename - Filename
      * @param caption - Optional caption
      */
-    async sendVideo(threadId: number, data: Buffer, filename: string, caption?: string): Promise<SendMessageResult> {
+    async sendVideo(threadId: bigint, data: Buffer, filename: string, caption?: string): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.sendVideo(this.handle, {
             threadId,
@@ -390,7 +390,7 @@ export class Client<
      * @param data - Audio data as Buffer
      * @param filename - Filename
      */
-    async sendVoice(threadId: number, data: Buffer, filename: string): Promise<SendMessageResult> {
+    async sendVoice(threadId: bigint, data: Buffer, filename: string): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.sendVoice(this.handle, {
             threadId,
@@ -409,7 +409,7 @@ export class Client<
      * @param caption - Optional caption
      */
     async sendFile(
-        threadId: number,
+        threadId: bigint,
         data: Buffer,
         filename: string,
         mimeType: string,
@@ -431,7 +431,7 @@ export class Client<
      * @param threadId - Thread ID
      * @param stickerId - Sticker ID
      */
-    async sendSticker(threadId: number, stickerId: number): Promise<SendMessageResult> {
+    async sendSticker(threadId: bigint, stickerId: bigint): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.sendSticker(this.handle, { threadId, stickerId });
     }
@@ -442,7 +442,7 @@ export class Client<
      * @param userId - User ID to create thread with
      * @returns Created thread info
      */
-    async createThread(userId: number): Promise<CreateThreadResult> {
+    async createThread(userId: bigint): Promise<CreateThreadResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.createThread(this.handle, { userId });
     }
@@ -453,7 +453,7 @@ export class Client<
      * @param userId - User ID
      * @returns User info
      */
-    async getUserInfo(userId: number): Promise<UserInfo> {
+    async getUserInfo(userId: bigint): Promise<UserInfo> {
         if (!this.handle) throw new Error("Not connected");
         return native.getUserInfo(this.handle, { userId });
     }
@@ -467,7 +467,7 @@ export class Client<
      *
      * @warn Cannot remove group photo. Messenger web doesn't have a remove option?
      */
-    async setGroupPhoto(threadId: number, data: Buffer | string, mimeType: string = "image/jpeg"): Promise<void> {
+    async setGroupPhoto(threadId: bigint, data: Buffer | string, mimeType: string = "image/jpeg"): Promise<void> {
         if (!this.handle) throw new Error("Not connected");
         const base64 = Buffer.isBuffer(data) ? data.toString("base64") : data;
         await native.setGroupPhoto(this.handle, threadId, base64, mimeType);
@@ -479,7 +479,7 @@ export class Client<
      * @param threadId - Thread ID
      * @param newName - New name
      */
-    async renameThread(threadId: number, newName: string): Promise<void> {
+    async renameThread(threadId: bigint, newName: string): Promise<void> {
         if (!this.handle) throw new Error("Not connected");
         native.renameThread(this.handle, { threadId, newName });
     }
@@ -490,7 +490,7 @@ export class Client<
      * @param threadId - Thread ID
      * @param muteSeconds - Duration in seconds (-1 for forever, 0 to unmute)
      */
-    async muteThread(threadId: number, muteSeconds: number = -1): Promise<void> {
+    async muteThread(threadId: bigint, muteSeconds: number = -1): Promise<void> {
         if (!this.handle) throw new Error("Not connected");
         native.muteThread(this.handle, { threadId, muteSeconds });
     }
@@ -500,7 +500,7 @@ export class Client<
      *
      * @param threadId - Thread ID
      */
-    async unmuteThread(threadId: number): Promise<void> {
+    async unmuteThread(threadId: bigint): Promise<void> {
         return this.muteThread(threadId, 0);
     }
 
@@ -509,7 +509,7 @@ export class Client<
      *
      * @param threadId - Thread ID
      */
-    async deleteThread(threadId: number): Promise<void> {
+    async deleteThread(threadId: bigint): Promise<void> {
         if (!this.handle) throw new Error("Not connected");
         native.deleteThread(this.handle, { threadId });
     }
@@ -804,8 +804,8 @@ export class Client<
         mediaEncSha256?: string;
         mediaType: string;
         mimeType: string;
-        fileSize: number;
-    }): Promise<{ data: Buffer; mimeType: string; fileSize: number }> {
+        fileSize: bigint;
+    }): Promise<{ data: Buffer; mimeType: string; fileSize: bigint }> {
         if (!this.handle) throw new Error("Not connected");
         const result = await native.downloadE2EEMedia(this.handle, options);
         return {

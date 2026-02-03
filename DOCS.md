@@ -3,6 +3,9 @@
 > [!TIP]
 > This library is written in the style of Schmavery/facebook-chat-api (without using source code) for familiarity and ease of use (and without callbacks).
 
+> [!IMPORTANT]
+> **BigInt for Large Numbers**: This library uses JavaScript `BigInt` for large numeric values like `threadId`, `userId`, `senderId`, etc. This prevents integer overflow since Facebook IDs can exceed JavaScript's `Number.MAX_SAFE_INTEGER` (2^53-1). When comparing or using these values, use `BigInt` literals (e.g., `123n`) or `BigInt()` conversion.
+
 * [Cookie Security](#cookie-security)
 * [Client](#client)
   * [`new Client(cookies, options)`](#constructor)
@@ -159,7 +162,7 @@ __Returns__
 Promise<{ user: User, initialData: InitialData }>
 
 * `user`: Logged-in user information
-  * `id`: number - Facebook ID
+  * `id`: bigint - Facebook ID
   * `name`: string - Display name
   * `username`: string - Username
 * `initialData`: Initial data
@@ -220,7 +223,7 @@ __Type:__ `User | null`
 
 Facebook ID of the current user. `null` if not connected.
 
-__Type:__ `number | null`
+__Type:__ `bigint | null`
 
 ---
 
@@ -260,14 +263,14 @@ Send a text message to a thread.
 
 __Parameters__
 
-* `threadId`: number - Thread ID.
+* `threadId`: bigint - Thread ID.
 * `options`: string | SendMessageOptions
   * If string: Send a simple text message
   * If object:
     * `text`: string - Message content
     * `replyToId?`: string - Message ID to reply to
     * `mentions?`: Mention[] - List of mentions
-      * `userId`: number - Mentioned user ID
+      * `userId`: bigint - Mentioned user ID
       * `offset`: number - Start position in text
       * `length`: number - Length of mention
 
@@ -275,7 +278,7 @@ __Returns__
 
 Promise<SendMessageResult>
 * `messageId`: string - Sent message ID
-* `timestampMs`: number - Timestamp (milliseconds)
+* `timestampMs`: bigint - Timestamp (milliseconds)
 
 __Example__
 
@@ -293,7 +296,7 @@ await client.sendMessage(threadId, {
 await client.sendMessage(threadId, {
     text: 'Hello @friend!',
     mentions: [{
-        userId: 100000000000001,
+        userId: 100000000000001n,
         offset: 6,
         length: 7
     }]
@@ -309,7 +312,7 @@ Send or remove a reaction on a message.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `messageId`: string - Message ID to react to
 * `emoji?`: string - Reaction emoji (omit to remove reaction)
 
@@ -367,7 +370,7 @@ Send typing indicator.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `isTyping?`: boolean - `true` to start, `false` to stop (default: `true`)
 * `isGroup?`: boolean - `true` if group chat (default: `false`)
 
@@ -392,7 +395,7 @@ Mark a thread as read.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `watermarkTs?`: number - Watermark timestamp (default: current time)
 
 __Example__
@@ -412,7 +415,7 @@ Send an image.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `data`: Buffer - Image data
 * `filename`: string - Filename
 * `caption?`: string - Caption (optional)
@@ -439,7 +442,7 @@ Send a video.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `data`: Buffer - Video data
 * `filename`: string - Filename
 * `caption?`: string - Caption (optional)
@@ -464,7 +467,7 @@ Send a voice message.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `data`: Buffer - Audio data
 * `filename`: string - Filename
 
@@ -488,7 +491,7 @@ Send any file.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `data`: Buffer - File data
 * `filename`: string - Filename
 * `mimeType`: string - MIME type (e.g., 'application/pdf')
@@ -514,8 +517,8 @@ Send a sticker.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
-* `stickerId`: number - Sticker ID
+* `threadId`: bigint - Thread ID
+* `stickerId`: bigint - Sticker ID
 
 __Returns__
 
@@ -525,7 +528,7 @@ __Example__
 
 ```typescript
 // Send thumbs up sticker
-await client.sendSticker(threadId, 369239263222822)
+await client.sendSticker(threadId, 369239263222822n)
 ```
 
 ---
@@ -537,7 +540,7 @@ Upload media and get ID for later use.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `data`: Buffer - File data
 * `filename`: string - Filename
 * `mimeType`: string - MIME type
@@ -545,7 +548,7 @@ __Parameters__
 __Returns__
 
 Promise<UploadMediaResult>
-* `fbId`: number - Facebook ID of media
+* `fbId`: bigint - Facebook ID of media
 * `filename`: string - Filename
 
 __Example__
@@ -567,17 +570,17 @@ Create a 1:1 thread with a user.
 
 __Parameters__
 
-* `userId`: number - User ID
+* `userId`: bigint - User ID
 
 __Returns__
 
 Promise<CreateThreadResult>
-* `threadId`: number - New thread ID
+* `threadId`: bigint - New thread ID
 
 __Example__
 
 ```typescript
-const { threadId } = await client.createThread(100000000000001)
+const { threadId } = await client.createThread(100000000000001n)
 await client.sendMessage(threadId, 'Hello!')
 ```
 
@@ -590,7 +593,7 @@ Rename a group chat.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `newName`: string - New name
 
 __Example__
@@ -608,7 +611,7 @@ Change the group avatar.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `data`: Buffer | string - Image data (Buffer or base64 string)
 * `mimeType?`: string - MIME type (default: 'image/jpeg')
 
@@ -632,7 +635,7 @@ Mute thread notifications.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `seconds?`: number - Mute duration (seconds)
   * `-1`: Mute forever (default)
   * `0`: Unmute
@@ -657,7 +660,7 @@ Unmute thread notifications.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 
 __Example__
 
@@ -674,7 +677,7 @@ Delete a thread.
 
 __Parameters__
 
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 
 __Warning__
 
@@ -697,12 +700,12 @@ Get detailed information about a user.
 
 __Parameters__
 
-* `userId`: number - User ID
+* `userId`: bigint - User ID
 
 __Returns__
 
 Promise<UserInfo>
-* `id`: number - Facebook ID
+* `id`: bigint - Facebook ID
 * `name`: string - Full name
 * `firstName?`: string - First name
 * `username?`: string - Username
@@ -715,7 +718,7 @@ Promise<UserInfo>
 __Example__
 
 ```typescript
-const user = await client.getUserInfo(100000000000001)
+const user = await client.getUserInfo(100000000000001n)
 console.log(`${user.name} (@${user.username})`)
 ```
 
@@ -733,7 +736,7 @@ __Parameters__
 __Returns__
 
 Promise<SearchUserResult[]>
-* `id`: number - Facebook ID
+* `id`: bigint - Facebook ID
 * `name`: string - Name
 * `username`: string - Username
 
@@ -1027,14 +1030,14 @@ __Parameters__
   * `mediaEncSha256?`: string - Base64 encoded encrypted file SHA256 (recommended for verification)
   * `mediaType`: string - Media type: `'image'`, `'video'`, `'audio'`, `'document'`, `'sticker'`
   * `mimeType`: string - MIME type (e.g., 'image/jpeg')
-  * `fileSize`: number - File size in bytes
+  * `fileSize`: bigint - File size in bytes
 
 __Returns__
 
-Promise<{ data: Buffer; mimeType: string; fileSize: number }>
+Promise<{ data: Buffer; mimeType: string; fileSize: bigint }>
 * `data`: Buffer - Decrypted media data
 * `mimeType`: string - MIME type
-* `fileSize`: number - File size
+* `fileSize`: bigint - File size
 
 __Example__
 
@@ -1431,10 +1434,10 @@ client.on('message', (message: Message) => {
 __Message object__
 
 * `id`: string - Message ID
-* `threadId`: number - Thread ID
-* `senderId`: number - Sender ID
+* `threadId`: bigint - Thread ID
+* `senderId`: bigint - Sender ID
 * `text`: string - Content
-* `timestampMs`: number - Timestamp
+* `timestampMs`: bigint - Timestamp
 * `attachments?`: Attachment[] - Attachments
 * `replyTo?`: ReplyTo - Reply info
 * `mentions?`: Mention[] - Mentions
@@ -1459,8 +1462,8 @@ __Data object__
 
 * `messageId`: string - Message ID
 * `newText`: string - New content
-* `editCount?`: number - Edit count
-* `timestampMs`: number - Edit timestamp
+* `editCount?`: bigint - Edit count
+* `timestampMs`: bigint - Edit timestamp
 
 ---
 
@@ -1480,7 +1483,7 @@ client.on('messageUnsend', (data) => {
 __Data object__
 
 * `messageId`: string - Message ID
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 
 ---
 
@@ -1500,8 +1503,8 @@ client.on('reaction', (data) => {
 __Data object__
 
 * `messageId`: string - Message ID
-* `threadId`: number - Thread ID
-* `actorId`: number - Reactor ID
+* `threadId`: bigint - Thread ID
+* `actorId`: bigint - Reactor ID
 * `reaction`: string - Emoji (empty = removed reaction)
 
 ---
@@ -1521,8 +1524,8 @@ client.on('typing', (data) => {
 
 __Data object__
 
-* `threadId`: number - Thread ID
-* `senderId`: number - Typer ID
+* `threadId`: bigint - Thread ID
+* `senderId`: bigint - Typer ID
 * `isTyping`: boolean - Typing or stopped
 
 ---
@@ -1542,10 +1545,10 @@ client.on('readReceipt', (data) => {
 
 __Data object__
 
-* `threadId`: number - Thread ID
-* `readerId`: number - Reader ID
-* `readWatermarkTimestampMs`: number - Read watermark timestamp
-* `timestampMs?`: number - Read time
+* `threadId`: bigint - Thread ID
+* `readerId`: bigint - Reader ID
+* `readWatermarkTimestampMs`: bigint - Read watermark timestamp
+* `timestampMs?`: bigint - Read time
 
 ---
 
@@ -1565,12 +1568,12 @@ client.on('e2eeMessage', (message: E2EEMessage) => {
 __E2EEMessage object__
 
 * `id`: string - Message ID
-* `threadId`: number - Thread ID
+* `threadId`: bigint - Thread ID
 * `chatJid`: string - Chat JID
 * `senderJid`: string - Sender JID
-* `senderId`: number - Sender ID
+* `senderId`: bigint - Sender ID
 * `text`: string - Content
-* `timestampMs`: number - Timestamp
+* `timestampMs`: bigint - Timestamp
 * `attachments?`: Attachment[]
 * `replyTo?`: ReplyTo
 * `mentions?`: Mention[]
@@ -1595,7 +1598,7 @@ __Data object__
 * `messageId`: string - Message ID
 * `chatJid`: string - Chat JID
 * `senderJid`: string - Reactor JID
-* `senderId`: number - Reactor ID
+* `senderId`: bigint - Reactor ID
 * `reaction`: string - Emoji (empty = removed reaction)
 
 ---
@@ -1776,10 +1779,10 @@ Base interface shared by regular and E2EE messages.
 ```typescript
 interface BaseMessage {
     id: string              // Message ID
-    threadId: number        // Thread ID (Facebook numeric ID)
-    senderId: number        // Sender's Facebook ID
+    threadId: bigint        // Thread ID (Facebook numeric ID)
+    senderId: bigint        // Sender's Facebook ID
     text: string            // Message text content
-    timestampMs: number     // Timestamp in milliseconds
+    timestampMs: bigint     // Timestamp in milliseconds
     attachments?: Attachment[]
     replyTo?: ReplyTo
     mentions?: Mention[]
@@ -1815,11 +1818,11 @@ interface Attachment {
     url?: string
     fileName?: string
     mimeType?: string
-    fileSize?: number
+    fileSize?: bigint
     width?: number
     height?: number
     duration?: number
-    stickerId?: number
+    stickerId?: bigint
     previewUrl?: string
     // For link attachments
     description?: string    // Link description/subtitle
@@ -1837,7 +1840,7 @@ interface Attachment {
 ```typescript
 interface ReplyTo {
     messageId: string
-    senderId?: number
+    senderId?: bigint
     text?: string
 }
 ```
@@ -1846,7 +1849,7 @@ interface ReplyTo {
 
 ```typescript
 interface Mention {
-    userId: number
+    userId: bigint
     offset: number
     length: number
     /** Mention type: user (person), page, group, or thread */
@@ -1858,12 +1861,12 @@ interface Mention {
 
 ```typescript
 interface Thread {
-    id: number
+    id: bigint
     type: number
     name: string
-    lastActivityTimestampMs: number
+    lastActivityTimestampMs: bigint
     isGroup?: boolean
-    participants?: number[]
+    participants?: bigint[]
 }
 ```
 
@@ -1871,7 +1874,7 @@ interface Thread {
 
 ```typescript
 interface User {
-    id: number
+    id: bigint
     name: string
     username: string
 }
@@ -1881,7 +1884,7 @@ interface User {
 
 ```typescript
 interface UserInfo {
-    id: number
+    id: bigint
     name: string
     firstName?: string
     username?: string
