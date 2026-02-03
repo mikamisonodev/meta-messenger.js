@@ -58,50 +58,11 @@
  * @packageDocumentation
  */
 
-export type { ClientEventMap } from "./client.js";
-export { Client } from "./client.js";
-export { UIDLogin } from "./login.js";
-export {
-    type Attachment,
-    type AttachmentType,
-    type BaseEvent,
-    type ClientEvent,
-    type ClientOptions,
-    type Cookies,
-    type CreateThreadResult,
-    type DisconnectedEvent,
-    type E2EEConnectedEvent,
-    type E2EEMessage,
-    type E2EEMessageEvent,
-    type E2EEReactionEvent,
-    type E2EEReceiptEvent,
-    type ErrorEvent,
-    // Types
-    type EventType,
-    type InitialData,
-    type LogLevel,
-    type Mention,
-    type Message,
-    type MessageEditEvent,
-    type MessageEvent,
-    type MessageUnsendEvent,
-    type Platform,
-    type ReactionEvent,
-    type ReadyEvent,
-    type ReconnectedEvent,
-    type ReplyTo,
-    type SearchUserResult,
-    type SendMessageOptions,
-    type SendMessageResult,
-    type Thread,
-    // Enums
-    ThreadType,
-    type TypingEvent,
-    type UploadMediaResult,
-    type User,
-    type UserInfo,
-} from "./types.js";
-export { type CookieObject, extractUrlFromLPHP, isThumbsUpSticker, THUMBS_UP_STICKER_IDS, Utils } from "./utils.js";
+// Exports all
+export * from "./client.js";
+export * from "./login.js";
+export * from "./types.js";
+export * from "./utils.js";
 
 import { Client } from "./client.js";
 import type { ClientOptions, Cookies } from "./types.js";
