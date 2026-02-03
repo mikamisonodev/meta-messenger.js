@@ -126,7 +126,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Go modules
+# Go modules & debug files
 dist/
 build/
 *.exe
@@ -136,3 +136,4 @@ test*/
 e2ee_device.json
 example.ts
 package-lock.json
+*.jsonl
