@@ -8,6 +8,7 @@
   * [`new Client(cookies, options)`](#constructor)
   * [`client.connect()`](#connect)
   * [`client.disconnect()`](#disconnect)
+  * [`client.isFullyReady()`](#isfullyready)
   * [Properties](#properties)
 * [Regular Messages](#regular-messages)
   * [`client.sendMessage()`](#sendMessage)
@@ -188,6 +189,19 @@ console.log('Disconnected')
 
 ---
 
+<a name="isFullyReady"></a>
+## client.isFullyReady()
+
+Check if client is fully ready (socket + E2EE if enabled).
+
+__Example__
+
+```typescript
+console.log(client.isFullyReady())
+```
+
+---
+
 <a name="properties"></a>
 ## Properties
 
@@ -231,15 +245,6 @@ __Type:__ `boolean`
 ### client.isE2EEConnected
 
 Check if E2EE is connected.
-
-__Type:__ `boolean`
-
----
-
-<a name="isFullyReady"></a>
-### client.isFullyReady
-
-Check if client is fully ready (socket + E2EE if enabled).
 
 __Type:__ `boolean`
 
