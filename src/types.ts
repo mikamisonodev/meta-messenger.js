@@ -36,7 +36,8 @@ export type EventType =
     | "e2eeMessage"
     | "e2eeReaction"
     | "e2eeReceipt"
-    | "deviceDataChanged";
+    | "deviceDataChanged"
+    | "raw";
 
 /**
  * Base event interface
@@ -209,6 +210,34 @@ export interface DeviceDataChangedEvent extends BaseEvent {
 }
 
 /**
+ * Raw event source - indicates which channel the event came from
+ */
+export type RawEventSource = "lightspeed" | "whatsmeow" | "internal";
+
+/**
+ * Raw event data - contains the original event from LightSpeed or whatsmeow
+ */
+export interface RawEventData {
+    /** Source channel of the event */
+    from: RawEventSource;
+    /** Name of the event type (e.g., "Event_Ready", "FBMessage") */
+    type: string;
+    /** Raw event data (structure depends on the source) */
+    data: unknown;
+}
+
+/**
+ * Raw event - emitted for all incoming events from LightSpeed and whatsmeow
+ *
+ * This is useful for debugging or accessing raw event data that may not be
+ * processed by the standard event handlers.
+ */
+export interface RawEvent extends BaseEvent {
+    type: "raw";
+    data: RawEventData;
+}
+
+/**
  * Union of all events
  */
 export type ClientEvent =
@@ -226,7 +255,8 @@ export type ClientEvent =
     | E2EEMessageEvent
     | E2EEReactionEvent
     | E2EEReceiptEvent
-    | DeviceDataChangedEvent;
+    | DeviceDataChangedEvent
+    | RawEvent;
 
 /**
  * User information
@@ -327,37 +357,47 @@ export interface Mention {
 }
 
 /**
- * Message
+ * Base message interface shared between regular and E2EE messages
  */
-export interface Message {
+export interface BaseMessage {
+    /** Message ID */
     id: string;
+    /** Thread ID (Facebook numeric ID) */
     threadId: number;
+    /** Sender's Facebook ID */
     senderId: number;
+    /** Message text content */
     text: string;
+    /** Timestamp in milliseconds */
     timestampMs: number;
-    isE2EE?: boolean;
-    chatJid?: string;
-    senderJid?: string;
+    /** Media attachments */
     attachments?: Attachment[];
+    /** Reply info if this is a reply */
     replyTo?: ReplyTo;
+    /** Mentioned users */
     mentions?: Mention[];
+}
+
+/**
+ * Regular message (non-E2EE)
+ *
+ * Received via the `message` event
+ */
+export interface Message extends BaseMessage {
+    /** Whether this is an admin/system message */
     isAdminMsg?: boolean;
 }
 
 /**
- * E2EE Message
+ * E2EE (end-to-end encrypted) message
+ *
+ * Received via the `e2eeMessage` event
  */
-export interface E2EEMessage {
-    id: string;
-    threadId: number;
+export interface E2EEMessage extends BaseMessage {
+    /** Chat JID (required for E2EE operations) */
     chatJid: string;
+    /** Sender JID (required for E2EE operations) */
     senderJid: string;
-    senderId: number;
-    text: string;
-    timestampMs: number;
-    attachments?: Attachment[];
-    replyTo?: ReplyTo;
-    mentions?: Mention[];
 }
 
 /**

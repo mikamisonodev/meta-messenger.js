@@ -78,6 +78,7 @@
   * [`disconnected`](#event-disconnected) 🔵🟢
   * [`error`](#event-error) 🔵🟢
   * [`deviceDataChanged`](#event-deviceDataChanged) 🟢
+  * [`raw`](#event-raw) 🔵🟢
 * [Types](#types)
 
 ---
@@ -1370,6 +1371,7 @@ if (attachment.stickerId === THUMBS_UP_STICKER_IDS.LARGE) {
 | `e2eeReceipt` | ❌ | 🟢 | Message read (E2EE) |
 | `e2eeConnected` | ❌ | 🟢 | E2EE connection successful |
 | `deviceDataChanged` | ❌ | 🟢 | Device data changed |
+| `raw` | 🔵 | 🟢 | Raw event from LightSpeed/whatsmeow |
 | `fullyReady` | 🔵 | 🟢 | Client fully ready |
 | `disconnected` | 🔵 | 🟢 | Disconnected |
 | `error` | 🔵 | 🟢 | Error occurred |
@@ -1720,6 +1722,39 @@ This event is only emitted when you initialize the client with the `deviceData` 
 
 ---
 
+<a name="event-raw"></a>
+## Event: 'raw'
+
+> 🔵🟢 **Both Socket and E2EE** - All raw events from LightSpeed and whatsmeow
+
+Emitted for all incoming events from the LightSpeed (regular messages) and whatsmeow (E2EE) channels. This is useful for debugging or accessing raw event data that may not be processed by standard event handlers.
+
+```typescript
+client.on('raw', (data) => {
+    console.log(`Raw event from ${data.from}: ${data.type}`)
+    console.log(data.data)
+})
+```
+
+__Data object__
+
+* `from`: `'lightspeed'` | `'whatsmeow'` - Source channel of the event
+* `type`: string - Name of the event type (e.g., `"Event_Ready"`, `"FBMessage"`)
+* `data`: unknown - Raw event data (structure depends on the source)
+
+__Event sources__
+
+| Source | Description |
+|--------|-------------|
+| `lightspeed` | Events from LightSpeed protocol (regular Messenger) |
+| `whatsmeow` | Events from whatsmeow library (E2EE via WhatsApp protocol) |
+
+__Note__
+
+This event is emitted before the standard event handlers process the event. The raw data structure may vary depending on the source and event type. Use this for debugging or handling events not explicitly supported by the library.
+
+---
+
 # Types
 
 ## Cookies
@@ -1734,22 +1769,41 @@ interface Cookies {
 }
 ```
 
-## Message
+## BaseMessage
+
+Base interface shared by regular and E2EE messages.
 
 ```typescript
-interface Message {
-    id: string
-    threadId: number
-    senderId: number
-    text: string
-    timestampMs: number
-    isE2EE?: boolean
-    chatJid?: string
-    senderJid?: string
+interface BaseMessage {
+    id: string              // Message ID
+    threadId: number        // Thread ID (Facebook numeric ID)
+    senderId: number        // Sender's Facebook ID
+    text: string            // Message text content
+    timestampMs: number     // Timestamp in milliseconds
     attachments?: Attachment[]
     replyTo?: ReplyTo
     mentions?: Mention[]
-    isAdminMsg?: boolean
+}
+```
+
+## Message
+
+Regular message (non-E2EE). Extends [BaseMessage](#basemessage). Received via the `message` event.
+
+```typescript
+interface Message extends BaseMessage {
+    isAdminMsg?: boolean    // Whether this is an admin/system message
+}
+```
+
+## E2EEMessage
+
+End-to-end encrypted message. Extends [BaseMessage](#basemessage). Received via the `e2eeMessage` event.
+
+```typescript
+interface E2EEMessage extends BaseMessage {
+    chatJid: string         // Chat JID (required for E2EE operations)
+    senderJid: string       // Sender JID (required for E2EE operations)
 }
 ```
 

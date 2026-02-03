@@ -78,6 +78,7 @@
   * [`disconnected`](#event-disconnected) 🔵🟢
   * [`error`](#event-error) 🔵🟢
   * [`deviceDataChanged`](#event-deviceDataChanged) 🟢
+  * [`raw`](#event-raw) 🔵🟢
 * [Types](#types)
 
 ---
@@ -1370,6 +1371,7 @@ if (attachment.stickerId === THUMBS_UP_STICKER_IDS.LARGE) {
 | `e2eeReceipt` | ❌ | 🟢 | Tin nhắn đã đọc (E2EE) |
 | `e2eeConnected` | ❌ | 🟢 | Kết nối E2EE thành công |
 | `deviceDataChanged` | ❌ | 🟢 | Device data thay đổi |
+| `raw` | 🔵 | 🟢 | Event thô từ LightSpeed/whatsmeow |
 | `fullyReady` | 🔵 | 🟢 | Client hoàn toàn sẵn sàng |
 | `disconnected` | 🔵 | 🟢 | Mất kết nối |
 | `error` | 🔵 | 🟢 | Có lỗi xảy ra |
@@ -1720,6 +1722,39 @@ Event này chỉ được phát ra khi bạn khởi tạo client với option `d
 
 ---
 
+<a name="event-raw"></a>
+## Event: 'raw'
+
+> 🔵🟢 **Cả Socket và E2EE** - Tất cả event thô từ LightSpeed và whatsmeow
+
+Phát ra cho tất cả các event đến từ kênh LightSpeed (tin nhắn thường) và whatsmeow (E2EE). Hữu ích cho việc debug hoặc truy cập dữ liệu event thô không được xử lý bởi các event handler tiêu chuẩn.
+
+```typescript
+client.on('raw', (data) => {
+    console.log(`Raw event từ ${data.from}: ${data.type}`)
+    console.log(data.data)
+})
+```
+
+__Data object__
+
+* `from`: `'lightspeed'` | `'whatsmeow'` - Kênh nguồn của event
+* `type`: string - Tên loại event (ví dụ: `"Event_Ready"`, `"FBMessage"`)
+* `data`: unknown - Dữ liệu event thô (cấu trúc phụ thuộc vào nguồn)
+
+__Nguồn event__
+
+| Nguồn | Mô tả |
+|--------|-------------|
+| `lightspeed` | Event từ giao thức LightSpeed (Messenger thường) |
+| `whatsmeow` | Event từ thư viện whatsmeow (E2EE qua giao thức WhatsApp) |
+
+__Lưu ý__
+
+Event này được phát ra trước khi các event handler tiêu chuẩn xử lý event. Cấu trúc dữ liệu thô có thể thay đổi tùy thuộc vào nguồn và loại event. Sử dụng để debug hoặc xử lý các event không được thư viện hỗ trợ rõ ràng.
+
+---
+
 # Types
 
 ## Cookies
@@ -1734,22 +1769,41 @@ interface Cookies {
 }
 ```
 
-## Message
+## BaseMessage
+
+Interface cơ sở dùng chung cho tin nhắn thường và E2EE.
 
 ```typescript
-interface Message {
-    id: string
-    threadId: number
-    senderId: number
-    text: string
-    timestampMs: number
-    isE2EE?: boolean
-    chatJid?: string
-    senderJid?: string
+interface BaseMessage {
+    id: string              // ID tin nhắn
+    threadId: number        // Thread ID (Facebook numeric ID)
+    senderId: number        // Facebook ID của người gửi
+    text: string            // Nội dung văn bản
+    timestampMs: number     // Timestamp tính bằng milliseconds
     attachments?: Attachment[]
     replyTo?: ReplyTo
     mentions?: Mention[]
-    isAdminMsg?: boolean
+}
+```
+
+## Message
+
+Tin nhắn thường (không E2EE). Kế thừa [BaseMessage](#basemessage). Nhận qua event `message`.
+
+```typescript
+interface Message extends BaseMessage {
+    isAdminMsg?: boolean    // Có phải tin nhắn hệ thống không
+}
+```
+
+## E2EEMessage
+
+Tin nhắn mã hóa đầu cuối. Kế thừa [BaseMessage](#basemessage). Nhận qua event `e2eeMessage`.
+
+```typescript
+interface E2EEMessage extends BaseMessage {
+    chatJid: string         // Chat JID (bắt buộc cho các thao tác E2EE)
+    senderJid: string       // Sender JID (bắt buộc cho các thao tác E2EE)
 }
 ```
 

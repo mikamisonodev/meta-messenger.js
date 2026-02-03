@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -33,22 +34,23 @@ const (
 type EventType string
 
 const (
-	EventTypeReady          EventType = "ready"
-	EventTypeReconnected    EventType = "reconnected"
-	EventTypeDisconnected   EventType = "disconnected"
-	EventTypeError          EventType = "error"
-	EventTypeMessage        EventType = "message"
-	EventTypeMessageEdit    EventType = "messageEdit"
-	EventTypeMessageUnsend  EventType = "messageUnsend"
-	EventTypeReaction       EventType = "reaction"
-	EventTypeTyping         EventType = "typing"
-	EventTypePresence       EventType = "presence"
-	EventTypeReadReceipt    EventType = "readReceipt"
-	EventTypeE2EEConnected  EventType = "e2eeConnected"
-	EventTypeE2EEMessage    EventType = "e2eeMessage"
-	EventTypeE2EEReaction   EventType = "e2eeReaction"
-	EventTypeE2EEReceipt    EventType = "e2eeReceipt"
-	EventDeviceDataChanged  EventType = "deviceDataChanged"
+	EventTypeReady         EventType = "ready"
+	EventTypeReconnected   EventType = "reconnected"
+	EventTypeDisconnected  EventType = "disconnected"
+	EventTypeError         EventType = "error"
+	EventTypeRaw           EventType = "raw"
+	EventTypeMessage       EventType = "message"
+	EventTypeMessageEdit   EventType = "messageEdit"
+	EventTypeMessageUnsend EventType = "messageUnsend"
+	EventTypeReaction      EventType = "reaction"
+	EventTypeTyping        EventType = "typing"
+	EventTypePresence      EventType = "presence"
+	EventTypeReadReceipt   EventType = "readReceipt"
+	EventTypeE2EEConnected EventType = "e2eeConnected"
+	EventTypeE2EEMessage   EventType = "e2eeMessage"
+	EventTypeE2EEReaction  EventType = "e2eeReaction"
+	EventTypeE2EEReceipt   EventType = "e2eeReceipt"
+	EventDeviceDataChanged EventType = "deviceDataChanged"
 )
 
 // Event represents a generic event
@@ -118,16 +120,13 @@ type Mention struct {
 	Type   string `json:"type,omitempty"` // "user", "page", "group"
 }
 
-// Message represents a message
+// Message represents a regular (non-E2EE) message
 type Message struct {
 	ID          string        `json:"id"`
 	ThreadID    int64         `json:"threadId"`
 	SenderID    int64         `json:"senderId"`
 	Text        string        `json:"text"`
 	TimestampMs int64         `json:"timestampMs"`
-	IsE2EE      bool          `json:"isE2EE,omitempty"`
-	ChatJID     string        `json:"chatJid,omitempty"`
-	SenderJID   string        `json:"senderJid,omitempty"`
 	Attachments []*Attachment `json:"attachments,omitempty"`
 	ReplyTo     *ReplyTo      `json:"replyTo,omitempty"`
 	Mentions    []*Mention    `json:"mentions,omitempty"`
@@ -173,10 +172,29 @@ type ErrorEvent struct {
 	Code    int    `json:"code,omitempty"`
 }
 
-// E2EEMessage represents an E2EE message
+// RawEventSource represents the source of a raw event
+type RawEventSource string
+
+const (
+	RawEventSourceLightSpeed RawEventSource = "lightspeed" // LightSpeed events (non-E2EE)
+	RawEventSourceWhatsmeow  RawEventSource = "whatsmeow"  // WhatsApp/WhatsMe events (E2EE)
+)
+
+// RawEvent represents a raw event from internal sources
+// This is useful for debugging or handling events not explicitly supported
+type RawEvent struct {
+	// From indicates the source of the event
+	From RawEventSource `json:"from"`
+	// Type is the Go type name of the original event
+	Type string `json:"type"`
+	// Data contains the raw event data (JSON serialized)
+	Data interface{} `json:"data"`
+}
+
+// E2EEMessage represents an end-to-end encrypted message
 type E2EEMessage struct {
 	ID          string        `json:"id"`
-	ThreadID    int64         `json:"threadId"` // For compatibility with regular messages
+	ThreadID    int64         `json:"threadId"`
 	ChatJID     string        `json:"chatJid"`
 	SenderJID   string        `json:"senderJid"`
 	SenderID    int64         `json:"senderId"`
@@ -185,11 +203,29 @@ type E2EEMessage struct {
 	Attachments []*Attachment `json:"attachments,omitempty"`
 	ReplyTo     *ReplyTo      `json:"replyTo,omitempty"`
 	Mentions    []*Mention    `json:"mentions,omitempty"`
-	DebugType   string        `json:"debugType,omitempty"` // Debug: raw message type from protobuf
+}
+
+// getEventTypeName returns the type name of an event
+func getEventTypeName(evt any) string {
+	if evt == nil {
+		return "nil"
+	}
+	t := reflect.TypeOf(evt)
+	if t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	}
+	return t.Name()
 }
 
 // handleEvent handles messagix events
 func (c *Client) handleEvent(ctx context.Context, evt any) {
+	// Emit raw event for all incoming LightSpeed events
+	c.emitEvent(EventTypeRaw, &RawEvent{
+		From: RawEventSourceLightSpeed,
+		Type: getEventTypeName(evt),
+		Data: evt,
+	})
+
 	switch e := evt.(type) {
 	case *messagix.Event_Ready:
 		c.emitEvent(EventTypeReady, map[string]any{
@@ -616,6 +652,13 @@ func (c *Client) convertBlobAttachment(blob *table.LSInsertBlobAttachment) *Atta
 
 // handleE2EEEvent handles WhatsApp E2EE events
 func (c *Client) handleE2EEEvent(evt interface{}) {
+	// Emit raw event for all incoming whatsmeow events
+	c.emitEvent(EventTypeRaw, &RawEvent{
+		From: RawEventSourceWhatsmeow,
+		Type: getEventTypeName(evt),
+		Data: evt,
+	})
+
 	switch e := evt.(type) {
 	case *events.Connected:
 		c.emitEvent(EventTypeE2EEConnected, nil)
@@ -1027,12 +1070,8 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 	}
 
 	if e.Message == nil {
-		msg.DebugType = "nil"
 		return msg
 	}
-
-	// Set debug type from actual message type
-	msg.DebugType = fmt.Sprintf("%T", e.Message)
 
 	// Extract from ConsumerApplication
 	if ca, ok := e.Message.(*waConsumerApplication.ConsumerApplication); ok {
@@ -1162,7 +1201,6 @@ func (c *Client) extractE2EEMessage(e *events.FBMessage, senderID int64) *E2EEMe
 
 		// Try Content first (link shares, etc.)
 		if content := payload.GetContent(); content != nil {
-			msg.DebugType = fmt.Sprintf("%T -> Content/%T", e.Message, content.GetContent())
 			// ExtendedContentMessage - used for link shares and location sharing
 			if extMsg := content.GetExtendedContentMessage(); extMsg != nil {
 				targetType := extMsg.GetTargetType()
