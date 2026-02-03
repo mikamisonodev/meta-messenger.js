@@ -88,7 +88,12 @@ export interface ClientEventMap {
  * await client.connect()
  * ```
  */
-export class Client extends (EventEmitter as new () => TypedEventEmitter<ClientEventMap>) {
+
+export type If<T extends boolean, A, B = null> = T extends true ? A : T extends false ? B : A | B;
+
+export class Client<
+    Ready extends boolean = boolean,
+> extends (EventEmitter as new () => TypedEventEmitter<ClientEventMap>) {
     private handle: number | null = null;
     private options: ClientOptions;
     private cookies: Cookies;
@@ -124,28 +129,28 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<ClientE
     /**
      * Get the current user info
      */
-    get user(): User | null {
-        return this._user;
+    get user(): If<Ready, User> {
+        return this._user as If<Ready, User>;
     }
 
     /**
      * Get the current user's Facebook ID
      */
-    get currentUserId(): number | null {
-        return this._user?.id ?? null;
+    get currentUserId(): If<Ready, number> {
+        return (this._user?.id ?? null) as If<Ready, number>;
     }
 
     /**
      * Get initial sync data (threads and messages)
      */
-    get initialData(): InitialData | null {
-        return this._initialData;
+    get initialData(): If<Ready, InitialData> {
+        return this._initialData as If<Ready, InitialData>;
     }
 
     /**
      * Check if client is fully ready (socket ready + E2EE connected if enabled)
      */
-    get isFullyReady(): boolean {
+    public isFullyReady(): this is Client<true> {
         if (!this._socketReady) return false;
         if (this.options.enableE2EE && !this._e2eeConnected) return false;
         return true;
@@ -848,7 +853,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<ClientE
     }
 
     private checkFullyReady(): void {
-        if (this.isFullyReady && !this._fullyReadyEmitted) {
+        if (this.isFullyReady() && !this._fullyReadyEmitted) {
             this._fullyReadyEmitted = true;
             this.emit("fullyReady");
             // flush pending events

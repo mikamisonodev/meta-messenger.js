@@ -8,6 +8,7 @@
   * [`new Client(cookies, options)`](#constructor)
   * [`client.connect()`](#connect)
   * [`client.disconnect()`](#disconnect)
+  * [`client.isFullyReady()`](#isfullyready)
   * [Thuộc tính](#thuộc-tính)
 * [Tin nhắn thường](#tin-nhắn-thường)
   * [`client.sendMessage()`](#sendMessage)
@@ -188,6 +189,19 @@ console.log('Đã ngắt kết nối')
 
 ---
 
+<a name="isFullyReady"></a>
+## client.isFullyReady()
+
+Kiểm tra client đã hoàn toàn sẵn sàng (socket + E2EE nếu enabled).
+
+__Example__
+
+```typescript
+console.log(client.isFullyReady())
+```
+
+---
+
 <a name="thuộc-tính"></a>
 ## Thuộc tính
 
@@ -231,15 +245,6 @@ __Type:__ `boolean`
 ### client.isE2EEConnected
 
 Kiểm tra E2EE đã kết nối chưa.
-
-__Type:__ `boolean`
-
----
-
-<a name="isFullyReady"></a>
-### client.isFullyReady
-
-Kiểm tra client đã hoàn toàn sẵn sàng (socket + E2EE nếu enabled).
 
 __Type:__ `boolean`
 
