@@ -62,6 +62,7 @@ export interface ClientEventMap {
     e2eeReaction: [{ messageId: string; chatJid: string; senderJid: string; senderId?: number; reaction: string }];
     e2eeReceipt: [{ type: string; chat: string; sender: string; messageIds: string[] }];
     deviceDataChanged: [{ deviceData: string }];
+    raw: [{ from: "lightspeed" | "whatsmeow" | "internal"; type: string; data: unknown }];
 }
 
 /**
@@ -901,6 +902,9 @@ export class Client<
                 break;
             case "deviceDataChanged":
                 this.emit("deviceDataChanged", event.data);
+                break;
+            case "raw":
+                this.emit("raw", event.data);
                 break;
 
             // queue until fullyReady
