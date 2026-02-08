@@ -43,12 +43,11 @@
   "homepage": "https://github.com/yumi-team/meta-messenger.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "json-bigint": "^1.0.0",
+    "yumi-json-bigint": "^1.0.0",
     "koffi": "^2.15.1",
     "undici": "^7.20.0"
   },
   "devDependencies": {
-    "@types/json-bigint": "^1.0.4",
     "@types/node": "^25.1.0",
     "@typescript-eslint/eslint-plugin": "^7.15.0",
     "@typescript-eslint/parser": "^7.15.0",

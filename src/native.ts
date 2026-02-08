@@ -22,8 +22,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import JSONBig from "json-bigint";
 import koffi from "koffi";
+import JSONBig from "yumi-json-bigint";
 
 // Configure json-bigint to use native BigInt
 const JSONBigNative = JSONBig({ useNativeBigInt: true });
