@@ -26,7 +26,10 @@ import koffi from "koffi";
 import JSONBig from "yumi-json-bigint";
 
 // Configure json-bigint to use native BigInt
-const JSONBigNative = JSONBig({ useNativeBigInt: true });
+const JSONBigNative = JSONBig({
+    useNativeBigInt: true,
+    parseAsBigInt32: true,
+});
 
 function resolveDirname(): string {
     return path.dirname(fileURLToPath(import.meta.url));
