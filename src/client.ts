@@ -258,6 +258,7 @@ export class Client<
             threadId,
             text: opts.text,
             replyToId: opts.replyToId,
+            attachmentFbIds: opts.attachmentFbIds,
             mentionIds: opts.mentions?.map(m => m.userId),
             mentionOffsets: opts.mentions?.map(m => m.offset),
             mentionLengths: opts.mentions?.map(m => m.length),

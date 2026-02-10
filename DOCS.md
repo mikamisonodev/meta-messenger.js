@@ -269,6 +269,7 @@ __Parameters__
   * If object:
     * `text`: string - Message content
     * `replyToId?`: string - Message ID to reply to
+    * `attachmentFbIds?`: bigint[] - Pre-uploaded attachment Facebook IDs (from `uploadMedia()`)
     * `mentions?`: Mention[] - List of mentions
       * `userId`: bigint - Mentioned user ID
       * `offset`: number - Start position in text
@@ -300,6 +301,13 @@ await client.sendMessage(threadId, {
         offset: 6,
         length: 7
     }]
+})
+
+// Send with pre-uploaded attachments
+const upload = await client.uploadMedia(threadId, imageData, 'photo.jpg', 'image/jpeg')
+await client.sendMessage(threadId, {
+    text: 'Check this out!',
+    attachmentFbIds: [upload.fbId]
 })
 ```
 
