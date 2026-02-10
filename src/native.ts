@@ -191,11 +191,15 @@ export const native = {
         },
     ) => callAsync<{ fbId: bigint; filename: string }>("MxUploadMedia", { handle, options }),
 
-    sendImage: (handle: number, options: { threadId: bigint; data: number[]; filename: string; caption?: string; replyToId?: string }) =>
-        callAsync<{ messageId: string; timestampMs: bigint }>("MxSendImage", { handle, options }),
+    sendImage: (
+        handle: number,
+        options: { threadId: bigint; data: number[]; filename: string; caption?: string; replyToId?: string },
+    ) => callAsync<{ messageId: string; timestampMs: bigint }>("MxSendImage", { handle, options }),
 
-    sendVideo: (handle: number, options: { threadId: bigint; data: number[]; filename: string; caption?: string; replyToId?: string }) =>
-        callAsync<{ messageId: string; timestampMs: bigint }>("MxSendVideo", { handle, options }),
+    sendVideo: (
+        handle: number,
+        options: { threadId: bigint; data: number[]; filename: string; caption?: string; replyToId?: string },
+    ) => callAsync<{ messageId: string; timestampMs: bigint }>("MxSendVideo", { handle, options }),
 
     sendVoice: (handle: number, options: { threadId: bigint; data: number[]; filename: string; replyToId?: string }) =>
         callAsync<{ messageId: string; timestampMs: bigint }>("MxSendVoice", { handle, options }),

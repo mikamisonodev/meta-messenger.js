@@ -355,7 +355,12 @@ export class Client<
      * @param filename - Filename
      * @param options - Optional: caption and replyToId
      */
-    async sendImage(threadId: bigint, data: Buffer, filename: string, options?: string | { caption?: string; replyToId?: string }): Promise<SendMessageResult> {
+    async sendImage(
+        threadId: bigint,
+        data: Buffer,
+        filename: string,
+        options?: string | { caption?: string; replyToId?: string },
+    ): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         const opts = typeof options === "string" ? { caption: options } : options;
         return native.sendImage(this.handle, {
@@ -375,7 +380,12 @@ export class Client<
      * @param filename - Filename
      * @param options - Optional: caption and replyToId
      */
-    async sendVideo(threadId: bigint, data: Buffer, filename: string, options?: string | { caption?: string; replyToId?: string }): Promise<SendMessageResult> {
+    async sendVideo(
+        threadId: bigint,
+        data: Buffer,
+        filename: string,
+        options?: string | { caption?: string; replyToId?: string },
+    ): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         const opts = typeof options === "string" ? { caption: options } : options;
         return native.sendVideo(this.handle, {
@@ -395,7 +405,12 @@ export class Client<
      * @param filename - Filename
      * @param options - Optional: replyToId
      */
-    async sendVoice(threadId: bigint, data: Buffer, filename: string, options?: { replyToId?: string }): Promise<SendMessageResult> {
+    async sendVoice(
+        threadId: bigint,
+        data: Buffer,
+        filename: string,
+        options?: { replyToId?: string },
+    ): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.sendVoice(this.handle, {
             threadId,
@@ -440,7 +455,11 @@ export class Client<
      * @param stickerId - Sticker ID
      * @param options - Optional: replyToId
      */
-    async sendSticker(threadId: bigint, stickerId: bigint, options?: { replyToId?: string }): Promise<SendMessageResult> {
+    async sendSticker(
+        threadId: bigint,
+        stickerId: bigint,
+        options?: { replyToId?: string },
+    ): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.sendSticker(this.handle, { threadId, stickerId, replyToId: options?.replyToId });
     }
