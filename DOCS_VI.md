@@ -269,6 +269,7 @@ __Tham số__
   * Nếu là object:
     * `text`: string - Nội dung tin nhắn
     * `replyToId?`: string - ID tin nhắn để reply
+    * `attachmentFbIds?`: bigint[] - Danh sách Facebook ID của media đã upload (từ `uploadMedia()`)
     * `mentions?`: Mention[] - Danh sách mention
       * `userId`: bigint - ID user được mention
       * `offset`: number - Vị trí bắt đầu trong text
@@ -300,6 +301,13 @@ await client.sendMessage(threadId, {
         offset: 5,
         length: 4
     }]
+})
+
+// Gửi với attachment đã upload trước
+const upload = await client.uploadMedia(threadId, imageData, 'photo.jpg', 'image/jpeg')
+await client.sendMessage(threadId, {
+    text: 'Xem này!',
+    attachmentFbIds: [upload.fbId]
 })
 ```
 

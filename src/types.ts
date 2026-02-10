@@ -467,6 +467,8 @@ export interface SendMessageOptions {
     text: string;
     /** Reply to message ID */
     replyToId?: string;
+    /** Pre-uploaded attachment Facebook IDs (from uploadMedia) */
+    attachmentFbIds?: bigint[];
     /** User IDs to mention */
     mentions?: Array<{
         userId: bigint;
