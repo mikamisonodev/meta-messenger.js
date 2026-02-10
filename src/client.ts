@@ -353,15 +353,17 @@ export class Client<
      * @param threadId - Thread ID
      * @param data - Image data as Buffer
      * @param filename - Filename
-     * @param caption - Optional caption
+     * @param options - Optional: caption and replyToId
      */
-    async sendImage(threadId: bigint, data: Buffer, filename: string, caption?: string): Promise<SendMessageResult> {
+    async sendImage(threadId: bigint, data: Buffer, filename: string, options?: string | { caption?: string; replyToId?: string }): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
+        const opts = typeof options === "string" ? { caption: options } : options;
         return native.sendImage(this.handle, {
             threadId,
             data: Array.from(data),
             filename,
-            caption,
+            caption: opts?.caption,
+            replyToId: opts?.replyToId,
         });
     }
 
@@ -371,15 +373,17 @@ export class Client<
      * @param threadId - Thread ID
      * @param data - Video data as Buffer
      * @param filename - Filename
-     * @param caption - Optional caption
+     * @param options - Optional: caption and replyToId
      */
-    async sendVideo(threadId: bigint, data: Buffer, filename: string, caption?: string): Promise<SendMessageResult> {
+    async sendVideo(threadId: bigint, data: Buffer, filename: string, options?: string | { caption?: string; replyToId?: string }): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
+        const opts = typeof options === "string" ? { caption: options } : options;
         return native.sendVideo(this.handle, {
             threadId,
             data: Array.from(data),
             filename,
-            caption,
+            caption: opts?.caption,
+            replyToId: opts?.replyToId,
         });
     }
 
@@ -389,13 +393,15 @@ export class Client<
      * @param threadId - Thread ID
      * @param data - Audio data as Buffer
      * @param filename - Filename
+     * @param options - Optional: replyToId
      */
-    async sendVoice(threadId: bigint, data: Buffer, filename: string): Promise<SendMessageResult> {
+    async sendVoice(threadId: bigint, data: Buffer, filename: string, options?: { replyToId?: string }): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
         return native.sendVoice(this.handle, {
             threadId,
             data: Array.from(data),
             filename,
+            replyToId: options?.replyToId,
         });
     }
 
@@ -406,22 +412,24 @@ export class Client<
      * @param data - File data as Buffer
      * @param filename - Filename
      * @param mimeType - MIME type
-     * @param caption - Optional caption
+     * @param options - Optional: caption and replyToId
      */
     async sendFile(
         threadId: bigint,
         data: Buffer,
         filename: string,
         mimeType: string,
-        caption?: string,
+        options?: string | { caption?: string; replyToId?: string },
     ): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
+        const opts = typeof options === "string" ? { caption: options } : options;
         return native.sendFile(this.handle, {
             threadId,
             data: Array.from(data),
             filename,
             mimeType,
-            caption,
+            caption: opts?.caption,
+            replyToId: opts?.replyToId,
         });
     }
 
@@ -430,10 +438,11 @@ export class Client<
      *
      * @param threadId - Thread ID
      * @param stickerId - Sticker ID
+     * @param options - Optional: replyToId
      */
-    async sendSticker(threadId: bigint, stickerId: bigint): Promise<SendMessageResult> {
+    async sendSticker(threadId: bigint, stickerId: bigint, options?: { replyToId?: string }): Promise<SendMessageResult> {
         if (!this.handle) throw new Error("Not connected");
-        return native.sendSticker(this.handle, { threadId, stickerId });
+        return native.sendSticker(this.handle, { threadId, stickerId, replyToId: options?.replyToId });
     }
 
     /**
