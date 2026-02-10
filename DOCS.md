@@ -409,7 +409,7 @@ await client.markAsRead(threadId)
 # Media
 
 <a name="sendImage"></a>
-## client.sendImage(threadId, data, filename, caption?)
+## client.sendImage(threadId, data, filename, options?)
 
 Send an image.
 
@@ -418,7 +418,9 @@ __Parameters__
 * `threadId`: bigint - Thread ID
 * `data`: Buffer - Image data
 * `filename`: string - Filename
-* `caption?`: string - Caption (optional)
+* `options?`: string | object - Caption string or options object
+  * `caption?`: string - Caption
+  * `replyToId?`: string - Message ID to reply to
 
 __Returns__
 
@@ -430,13 +432,20 @@ __Example__
 import { readFileSync } from 'fs'
 
 const image = readFileSync('photo.jpg')
+// Simple caption
 await client.sendImage(threadId, image, 'photo.jpg', 'Nice photo!')
+
+// With reply
+await client.sendImage(threadId, image, 'photo.jpg', {
+    caption: 'Nice photo!',
+    replyToId: 'mid.xxx'
+})
 ```
 
 ---
 
 <a name="sendVideo"></a>
-## client.sendVideo(threadId, data, filename, caption?)
+## client.sendVideo(threadId, data, filename, options?)
 
 Send a video.
 
@@ -445,7 +454,9 @@ __Parameters__
 * `threadId`: bigint - Thread ID
 * `data`: Buffer - Video data
 * `filename`: string - Filename
-* `caption?`: string - Caption (optional)
+* `options?`: string | object - Caption string or options object
+  * `caption?`: string - Caption
+  * `replyToId?`: string - Message ID to reply to
 
 __Returns__
 
@@ -456,12 +467,18 @@ __Example__
 ```typescript
 const video = readFileSync('video.mp4')
 await client.sendVideo(threadId, video, 'video.mp4', 'Cool video!')
+
+// With reply
+await client.sendVideo(threadId, video, 'video.mp4', {
+    caption: 'Cool video!',
+    replyToId: 'mid.xxx'
+})
 ```
 
 ---
 
 <a name="sendVoice"></a>
-## client.sendVoice(threadId, data, filename)
+## client.sendVoice(threadId, data, filename, options?)
 
 Send a voice message.
 
@@ -470,6 +487,8 @@ __Parameters__
 * `threadId`: bigint - Thread ID
 * `data`: Buffer - Audio data
 * `filename`: string - Filename
+* `options?`: object - Options
+  * `replyToId?`: string - Message ID to reply to
 
 __Returns__
 
@@ -480,12 +499,15 @@ __Example__
 ```typescript
 const voice = readFileSync('voice.mp3')
 await client.sendVoice(threadId, voice, 'voice.mp3')
+
+// With reply
+await client.sendVoice(threadId, voice, 'voice.mp3', { replyToId: 'mid.xxx' })
 ```
 
 ---
 
 <a name="sendFile"></a>
-## client.sendFile(threadId, data, filename, mimeType, caption?)
+## client.sendFile(threadId, data, filename, mimeType, options?)
 
 Send any file.
 
@@ -495,7 +517,9 @@ __Parameters__
 * `data`: Buffer - File data
 * `filename`: string - Filename
 * `mimeType`: string - MIME type (e.g., 'application/pdf')
-* `caption?`: string - Caption (optional)
+* `options?`: string | object - Caption string or options object
+  * `caption?`: string - Caption
+  * `replyToId?`: string - Message ID to reply to
 
 __Returns__
 
@@ -506,12 +530,18 @@ __Example__
 ```typescript
 const pdf = readFileSync('document.pdf')
 await client.sendFile(threadId, pdf, 'document.pdf', 'application/pdf', 'Document')
+
+// With reply
+await client.sendFile(threadId, pdf, 'document.pdf', 'application/pdf', {
+    caption: 'Document',
+    replyToId: 'mid.xxx'
+})
 ```
 
 ---
 
 <a name="sendSticker"></a>
-## client.sendSticker(threadId, stickerId)
+## client.sendSticker(threadId, stickerId, options?)
 
 Send a sticker.
 
@@ -519,6 +549,8 @@ __Parameters__
 
 * `threadId`: bigint - Thread ID
 * `stickerId`: bigint - Sticker ID
+* `options?`: object - Options
+  * `replyToId?`: string - Message ID to reply to
 
 __Returns__
 
@@ -529,6 +561,9 @@ __Example__
 ```typescript
 // Send thumbs up sticker
 await client.sendSticker(threadId, 369239263222822n)
+
+// Reply with sticker
+await client.sendSticker(threadId, 369239263222822n, { replyToId: 'mid.xxx' })
 ```
 
 ---

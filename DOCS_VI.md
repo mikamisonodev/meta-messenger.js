@@ -409,7 +409,7 @@ await client.markAsRead(threadId)
 # Media
 
 <a name="sendImage"></a>
-## client.sendImage(threadId, data, filename, caption?)
+## client.sendImage(threadId, data, filename, options?)
 
 Gửi ảnh.
 
@@ -418,7 +418,9 @@ __Tham số__
 * `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu ảnh
 * `filename`: string - Tên file
-* `caption?`: string - Caption (tùy chọn)
+* `options?`: string | object - Chuỗi caption hoặc object tùy chọn
+  * `caption?`: string - Caption
+  * `replyToId?`: string - ID tin nhắn cần reply
 
 __Trả về__
 
@@ -430,13 +432,20 @@ __Ví dụ__
 import { readFileSync } from 'fs'
 
 const image = readFileSync('photo.jpg')
+// Caption đơn giản
 await client.sendImage(threadId, image, 'photo.jpg', 'Ảnh đẹp!')
+
+// Với reply
+await client.sendImage(threadId, image, 'photo.jpg', {
+    caption: 'Ảnh đẹp!',
+    replyToId: 'mid.xxx'
+})
 ```
 
 ---
 
 <a name="sendVideo"></a>
-## client.sendVideo(threadId, data, filename, caption?)
+## client.sendVideo(threadId, data, filename, options?)
 
 Gửi video.
 
@@ -445,7 +454,9 @@ __Tham số__
 * `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu video
 * `filename`: string - Tên file
-* `caption?`: string - Caption (tùy chọn)
+* `options?`: string | object - Chuỗi caption hoặc object tùy chọn
+  * `caption?`: string - Caption
+  * `replyToId?`: string - ID tin nhắn cần reply
 
 __Trả về__
 
@@ -456,12 +467,18 @@ __Ví dụ__
 ```typescript
 const video = readFileSync('video.mp4')
 await client.sendVideo(threadId, video, 'video.mp4', 'Video hay!')
+
+// Với reply
+await client.sendVideo(threadId, video, 'video.mp4', {
+    caption: 'Video hay!',
+    replyToId: 'mid.xxx'
+})
 ```
 
 ---
 
 <a name="sendVoice"></a>
-## client.sendVoice(threadId, data, filename)
+## client.sendVoice(threadId, data, filename, options?)
 
 Gửi tin nhắn thoại.
 
@@ -470,6 +487,8 @@ __Tham số__
 * `threadId`: bigint - ID của thread
 * `data`: Buffer - Dữ liệu audio
 * `filename`: string - Tên file
+* `options?`: object - Tùy chọn
+  * `replyToId?`: string - ID tin nhắn cần reply
 
 __Trả về__
 
@@ -480,12 +499,15 @@ __Ví dụ__
 ```typescript
 const voice = readFileSync('voice.mp3')
 await client.sendVoice(threadId, voice, 'voice.mp3')
+
+// Với reply
+await client.sendVoice(threadId, voice, 'voice.mp3', { replyToId: 'mid.xxx' })
 ```
 
 ---
 
 <a name="sendFile"></a>
-## client.sendFile(threadId, data, filename, mimeType, caption?)
+## client.sendFile(threadId, data, filename, mimeType, options?)
 
 Gửi file bất kỳ.
 
@@ -495,7 +517,9 @@ __Tham số__
 * `data`: Buffer - Dữ liệu file
 * `filename`: string - Tên file
 * `mimeType`: string - MIME type (ví dụ: 'application/pdf')
-* `caption?`: string - Caption (tùy chọn)
+* `options?`: string | object - Chuỗi caption hoặc object tùy chọn
+  * `caption?`: string - Caption
+  * `replyToId?`: string - ID tin nhắn cần reply
 
 __Trả về__
 
@@ -506,12 +530,18 @@ __Ví dụ__
 ```typescript
 const pdf = readFileSync('document.pdf')
 await client.sendFile(threadId, pdf, 'document.pdf', 'application/pdf', 'Tài liệu')
+
+// Với reply
+await client.sendFile(threadId, pdf, 'document.pdf', 'application/pdf', {
+    caption: 'Tài liệu',
+    replyToId: 'mid.xxx'
+})
 ```
 
 ---
 
 <a name="sendSticker"></a>
-## client.sendSticker(threadId, stickerId)
+## client.sendSticker(threadId, stickerId, options?)
 
 Gửi sticker.
 
@@ -519,6 +549,8 @@ __Tham số__
 
 * `threadId`: bigint - ID của thread
 * `stickerId`: bigint - ID của sticker
+* `options?`: object - Tùy chọn
+  * `replyToId?`: string - ID tin nhắn cần reply
 
 __Trả về__
 
@@ -529,6 +561,9 @@ __Ví dụ__
 ```typescript
 // Gửi sticker thumbs up
 await client.sendSticker(threadId, 369239263222822n)
+
+// Reply bằng sticker
+await client.sendSticker(threadId, 369239263222822n, { replyToId: 'mid.xxx' })
 ```
 
 ---

@@ -191,13 +191,17 @@ export const native = {
         },
     ) => callAsync<{ fbId: bigint; filename: string }>("MxUploadMedia", { handle, options }),
 
-    sendImage: (handle: number, options: { threadId: bigint; data: number[]; filename: string; caption?: string }) =>
-        callAsync<{ messageId: string; timestampMs: bigint }>("MxSendImage", { handle, options }),
+    sendImage: (
+        handle: number,
+        options: { threadId: bigint; data: number[]; filename: string; caption?: string; replyToId?: string },
+    ) => callAsync<{ messageId: string; timestampMs: bigint }>("MxSendImage", { handle, options }),
 
-    sendVideo: (handle: number, options: { threadId: bigint; data: number[]; filename: string; caption?: string }) =>
-        callAsync<{ messageId: string; timestampMs: bigint }>("MxSendVideo", { handle, options }),
+    sendVideo: (
+        handle: number,
+        options: { threadId: bigint; data: number[]; filename: string; caption?: string; replyToId?: string },
+    ) => callAsync<{ messageId: string; timestampMs: bigint }>("MxSendVideo", { handle, options }),
 
-    sendVoice: (handle: number, options: { threadId: bigint; data: number[]; filename: string }) =>
+    sendVoice: (handle: number, options: { threadId: bigint; data: number[]; filename: string; replyToId?: string }) =>
         callAsync<{ messageId: string; timestampMs: bigint }>("MxSendVoice", { handle, options }),
 
     sendFile: (
@@ -208,10 +212,11 @@ export const native = {
             filename: string;
             mimeType: string;
             caption?: string;
+            replyToId?: string;
         },
     ) => callAsync<{ messageId: string; timestampMs: bigint }>("MxSendFile", { handle, options }),
 
-    sendSticker: (handle: number, options: { threadId: bigint; stickerId: bigint }) =>
+    sendSticker: (handle: number, options: { threadId: bigint; stickerId: bigint; replyToId?: string }) =>
         callAsync<{ messageId: string; timestampMs: bigint }>("MxSendSticker", { handle, options }),
 
     createThread: (handle: number, options: { userId: bigint }) =>

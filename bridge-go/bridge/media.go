@@ -82,8 +82,9 @@ func (c *Client) SendMedia(opts *SendMediaOptions) (*SendMessageResult, error) {
 
 // SendStickerOptions for sending stickers
 type SendStickerOptions struct {
-	ThreadID  int64 `json:"threadId"`
-	StickerID int64 `json:"stickerId"`
+	ThreadID  int64  `json:"threadId"`
+	StickerID int64  `json:"stickerId"`
+	ReplyToID string `json:"replyToId,omitempty"`
 }
 
 // SendSticker sends a sticker
@@ -91,15 +92,17 @@ func (c *Client) SendSticker(opts *SendStickerOptions) (*SendMessageResult, erro
 	return c.SendMessage(&SendMessageOptions{
 		ThreadID:  opts.ThreadID,
 		StickerID: opts.StickerID,
+		ReplyToID: opts.ReplyToID,
 	})
 }
 
 // SendImageOptions for sending images
 type SendImageOptions struct {
-	ThreadID int64  `json:"threadId"`
-	Data     []byte `json:"data"`
-	Filename string `json:"filename"`
-	Caption  string `json:"caption"`
+	ThreadID  int64  `json:"threadId"`
+	Data      []byte `json:"data"`
+	Filename  string `json:"filename"`
+	Caption   string `json:"caption"`
+	ReplyToID string `json:"replyToId,omitempty"`
 }
 
 // SendImage sends an image
@@ -128,15 +131,17 @@ func (c *Client) SendImage(opts *SendImageOptions) (*SendMessageResult, error) {
 		ThreadID:   opts.ThreadID,
 		MediaFbIds: []int64{uploadResult.FbID},
 		Caption:    opts.Caption,
+		ReplyToID:  opts.ReplyToID,
 	})
 }
 
 // SendVideoOptions for sending videos
 type SendVideoOptions struct {
-	ThreadID int64  `json:"threadId"`
-	Data     []byte `json:"data"`
-	Filename string `json:"filename"`
-	Caption  string `json:"caption"`
+	ThreadID  int64  `json:"threadId"`
+	Data      []byte `json:"data"`
+	Filename  string `json:"filename"`
+	Caption   string `json:"caption"`
+	ReplyToID string `json:"replyToId,omitempty"`
 }
 
 // SendVideo sends a video
@@ -156,14 +161,16 @@ func (c *Client) SendVideo(opts *SendVideoOptions) (*SendMessageResult, error) {
 		ThreadID:   opts.ThreadID,
 		MediaFbIds: []int64{uploadResult.FbID},
 		Caption:    opts.Caption,
+		ReplyToID:  opts.ReplyToID,
 	})
 }
 
 // SendVoiceOptions for sending voice messages
 type SendVoiceOptions struct {
-	ThreadID int64  `json:"threadId"`
-	Data     []byte `json:"data"`
-	Filename string `json:"filename"`
+	ThreadID  int64  `json:"threadId"`
+	Data      []byte `json:"data"`
+	Filename  string `json:"filename"`
+	ReplyToID string `json:"replyToId,omitempty"`
 }
 
 // SendVoice sends a voice message
@@ -182,16 +189,18 @@ func (c *Client) SendVoice(opts *SendVoiceOptions) (*SendMessageResult, error) {
 	return c.SendMedia(&SendMediaOptions{
 		ThreadID:   opts.ThreadID,
 		MediaFbIds: []int64{uploadResult.FbID},
+		ReplyToID:  opts.ReplyToID,
 	})
 }
 
 // SendFileOptions for sending files
 type SendFileOptions struct {
-	ThreadID int64  `json:"threadId"`
-	Data     []byte `json:"data"`
-	Filename string `json:"filename"`
-	MimeType string `json:"mimeType"`
-	Caption  string `json:"caption"`
+	ThreadID  int64  `json:"threadId"`
+	Data      []byte `json:"data"`
+	Filename  string `json:"filename"`
+	MimeType  string `json:"mimeType"`
+	Caption   string `json:"caption"`
+	ReplyToID string `json:"replyToId,omitempty"`
 }
 
 // SendFile sends a file
@@ -211,6 +220,7 @@ func (c *Client) SendFile(opts *SendFileOptions) (*SendMessageResult, error) {
 		ThreadID:   opts.ThreadID,
 		MediaFbIds: []int64{uploadResult.FbID},
 		Caption:    opts.Caption,
+		ReplyToID:  opts.ReplyToID,
 	})
 }
 
