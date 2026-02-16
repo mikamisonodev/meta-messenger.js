@@ -275,6 +275,7 @@ export interface Thread {
     type: ThreadType;
     name: string;
     lastActivityTimestampMs: bigint;
+    participants: bigint[];
     snippet: string;
 }
 
