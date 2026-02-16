@@ -80,7 +80,6 @@ type Thread struct {
 	Name                    string `json:"name"`
 	LastActivityTimestampMs int64  `json:"lastActivityTimestampMs"`
 	Snippet                 string `json:"snippet"`
-    Participants           []int64 `json:"participants"`
 }
 
 // Attachment represents a media attachment

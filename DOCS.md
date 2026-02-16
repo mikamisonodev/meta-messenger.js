@@ -1909,7 +1909,6 @@ interface Thread {
     name: string
     lastActivityTimestampMs: bigint
     isGroup?: boolean
-    participants?: bigint[]
 }
 ```
 
